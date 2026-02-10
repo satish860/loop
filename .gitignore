@@ -1,0 +1,20 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Runtime data
+.loop/
+
+# Planning docs (not shipped)
+project-docs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Dataset files (large, not checked in)
+dataset/
