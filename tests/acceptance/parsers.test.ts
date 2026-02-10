@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, mkdirSync, rmSync } from "fs";
 import { parsePdf } from "../../src/parsers/pdf.js";
 
-const TEST_DIR = "dataset/test-output";
-const PDF = "dataset/BESTBUY_2023_10K.pdf";
+const TEST_DIR = "tmp/test-parsers";
+const PDF = "fixtures/BESTBUY_2023_10K.pdf";
 
 describe("Story 1.3: Node.js PDF parser wrapper", () => {
   // Clean test output before each run

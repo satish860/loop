@@ -2,38 +2,53 @@
 
 **AI that learns from every correction** — document intelligence CLI powered by [Pi coding agent](https://github.com/nicholasgasior/pi-coding-agent).
 
-Ingest PDFs. Ask questions. Get cited answers with page numbers. Loop improves accuracy through an eval loop — every correction makes the next answer better.
+Ingest PDFs, Excel, and CSV files. Ask questions. Get cited answers with page numbers. Loop improves accuracy through an eval loop — every correction makes the next answer better.
 
 ## Demo
 
 ```bash
-# Ingest a 75-page SEC 10-K filing
-$ loop ingest BESTBUY_2023_10K.pdf
-Parsing: BESTBUY_2023_10K.pdf
-Pages: 75
-Stored: BESTBUY_2023_10K.txt (75 pages). Corpus: 1 document
+# Ingest a folder of mixed documents
+$ loop ingest ./portfolio/
+Parsing: 5 files found
+  ✅ BESTBUY_2023_10K.pdf         75 pages        PDF
+  ✅ sample_lease.pdf              4 pages         PDF
+  ✅ sample_amendment.pdf          2 pages         PDF
+  ✅ fleet_sample.xlsx             3 sheets        Excel
+  ✅ utilization_sample.csv       10 rows          CSV
+Corpus: 5 documents
 
 # Ask a question — watch Loop think
-$ loop query "What was Best Buy's total revenue for fiscal year 2023?"
-Searching 1 document...
+$ loop query "What aircraft type is MSN 4521?"
+Searching 5 documents...
 
   ▸ Reading INDEX.md
-  ▸ Searching for "total revenue" in BESTBUY_2023_10K.txt
-  ▸ Reading BESTBUY_2023_10K.txt (lines 8595–8615)
+  ▸ Searching for "MSN 4521" in fleet_sample.txt
 
-Best Buy's total revenue for fiscal year 2023 was **$46,298 million**.
+MSN 4521 is a **Boeing B777-300ER**, leased to Emirates.
 
-"Total revenue $ 46,298"
+**Source: [fleet_sample.xlsx, Sheet "Fleet Overview"]**
 
-**Source: [BESTBUY_2023_10K.pdf, Page 62]**
+# Cross-format conflict detection
+$ loop query "What is the engine reserve rate for MSN 4521? Compare the fleet spreadsheet and amendments."
+Searching 5 documents...
+
+  ▸ Searching for "engine.*reserve" in fleet_sample.txt
+  ▸ Searching for "engine.*reserve" in sample_amendment.txt
+
+The engine maintenance reserve rate for MSN 4521 shows a **conflict**:
+
+- **Fleet spreadsheet**: $350/FH (fleet_sample.xlsx, Sheet "Maintenance Reserves")
+- **Amendment No. 1**: $420/FH effective October 1, 2024 (sample_amendment.pdf)
+
+The amendment **supersedes** the original rate.
 ```
 
 ## How It Works
 
 Loop embeds the Pi coding agent SDK — an LLM with `read`, `grep`, `find`, and `ls` tools. No embeddings. No vector database. No chunking pipeline.
 
-1. **Ingest** — PDFs are parsed into plain text with `--- PAGE N ---` markers
-2. **Query** — Pi reads the corpus index, greps for keywords, reads relevant pages, and answers with citations
+1. **Ingest** — PDFs, Excel, and CSV files are parsed into plain text with page/sheet markers
+2. **Query** — Pi reads the corpus index, greps for keywords, reads relevant sections, and answers with citations
 3. **Eval** *(coming soon)* — Track accuracy over time. Every correction feeds back into the system prompt
 
 The LLM decides how to explore documents. It decomposes questions, searches iteratively, and cites sources — the same way a human analyst would.
@@ -43,7 +58,7 @@ The LLM decides how to explore documents. It decomposes questions, searches iter
 ```bash
 # Prerequisites
 node >= 18
-python >= 3.10
+python >= 3.10  # only needed for PDF parsing
 
 # Clone and install
 git clone https://github.com/anthropics/loop.git
@@ -62,27 +77,41 @@ npm link
 ## Usage
 
 ```bash
-# Ingest a PDF
-loop ingest <file.pdf>
+# Ingest documents (PDF, Excel, CSV, or a folder)
+loop ingest report.pdf
+loop ingest fleet.xlsx
+loop ingest data.csv
+loop ingest ./portfolio/          # all supported files recursively
 
-# Ask a question
+# Re-running ingest skips already-ingested files
+loop ingest ./portfolio/          # "already ingested, skipping"
+
+# Ask questions
 loop query "What is the lease term for MSN 4521?"
+loop query "Which aircraft had zero flight hours?"
+loop query "Compare maintenance reserves across all documents"
 
 # Check corpus status
 loop status
-
-# Run eval loop (coming soon)
-loop eval
 ```
+
+## Supported Formats
+
+| Format | Extension | Parser | Output |
+|--------|-----------|--------|--------|
+| PDF | `.pdf` | PyMuPDF4LLM (Python) | `--- PAGE N ---` markers |
+| Excel | `.xlsx`, `.xls` | exceljs (Node.js) | `--- SHEET "name" ---` markers, pipe-delimited |
+| CSV | `.csv` | papaparse (Node.js) | Pipe-delimited rows |
 
 ## Architecture
 
 ```
-loop ingest <file>
+loop ingest <file|folder>
   │
-  ├── Python (PyMuPDF) → parse PDF to text with page markers
-  ├── Corpus Manager   → store in ~/.loop/corpus/, update INDEX.md
-  └── Done
+  ├── Route by extension (.pdf → Python, .xlsx → exceljs, .csv → papaparse)
+  ├── Parse to plain text with page/sheet markers
+  ├── Store in ~/.loop/corpus/, update INDEX.md
+  └── Skip if already ingested
 
 loop query "<question>"
   │
@@ -90,15 +119,15 @@ loop query "<question>"
   │   ├── Read INDEX.md → discover documents
   │   ├── Grep for keywords → find relevant sections
   │   ├── Read pages → extract answer
-  │   └── Cite source → [filename.pdf, Page N]
+  │   └── Cite source → [filename, Page N / Sheet "name"]
   └── Stream answer to terminal
 ```
 
 **Key design decisions:**
 - **No embeddings** — Pi's `grep` + `read` is the retrieval engine. The LLM decides what to search for
-- **No vector store** — plain text files with page markers. `grep` scales to hundreds of documents
+- **No vector store** — plain text files with page/sheet markers. `grep` scales to hundreds of documents
 - **No chunking** — documents stay whole. Pi reads specific line ranges using `offset`/`limit`
-- **Pre-parsed at ingest** — PDFs converted to text once. Queries read plain text (fast)
+- **Pre-parsed at ingest** — files converted to text once. Queries read plain text (fast)
 
 ## Project Structure
 
@@ -106,44 +135,39 @@ loop query "<question>"
 src/
 ├── index.ts              # CLI entry point (commander)
 ├── commands/
-│   ├── ingest.ts         # loop ingest command
-│   └── query.ts          # loop query command
+│   ├── ingest.ts         # loop ingest — routing, folder scan, incremental
+│   └── query.ts          # loop query — Pi session, streaming
 ├── core/
-│   ├── corpus.ts         # Corpus manager (store, index, track)
+│   ├── corpus.ts         # Corpus manager (store, index, metadata)
 │   └── session.ts        # Pi session factory (LLM + tools + system prompt)
 └── parsers/
     ├── types.ts          # ParseResult interface
-    └── pdf.ts            # Node.js wrapper for Python PDF parser
+    ├── pdf.ts            # PDF → Python child_process
+    ├── excel.ts          # Excel → exceljs
+    └── csv.ts            # CSV → papaparse
 
 python/
 └── parse_pdf.py          # PyMuPDF PDF-to-text with page markers
 
-tests/
-└── acceptance/           # Real files, real LLM calls, no mocks
-    ├── scaffold.test.ts
-    ├── pdf-parser.test.ts
-    ├── parsers.test.ts
-    ├── corpus.test.ts
-    ├── ingest.test.ts
-    ├── query.test.ts
-    └── session.test.ts
+fixtures/                 # Test data (PDFs, Excel, CSV)
+tests/acceptance/         # Real files, real LLM calls, no mocks
 ```
 
 ## Testing
 
-Tests are **acceptance tests only** — real PDFs, real LLM calls, real file I/O. No mocks.
+Tests are **acceptance tests only** — real files, real LLM calls, real file I/O. No mocks. Ever.
 
 ```bash
-npm run test     # 30 tests, ~30s (includes LLM calls)
+npm run test
 ```
 
 ## Roadmap
 
 - [x] **EPIC 1** — Single PDF → Query → Cited Answer
-- [ ] **EPIC 2** — Excel, CSV, folder ingestion
-- [ ] **EPIC 3** — Feedback loop (thumbs up/down, corrections)
-- [ ] **EPIC 4** — FinanceBench demo + benchmark
-- [ ] **EPIC 5** — Eval loop (accuracy tracking over time)
+- [x] **EPIC 2** — Excel, CSV, folder ingestion, cross-format conflict detection
+- [ ] **EPIC 3** — Feedback loop (pass/fail, annotations)
+- [ ] **EPIC 4** — FinanceBench demo + benchmark (336 SEC filings, 150 QA pairs)
+- [ ] **EPIC 5** — Eval loop (the curve: baseline → annotate → improve → re-run)
 - [ ] **EPIC 6** — Ship v1.0
 
 ## License

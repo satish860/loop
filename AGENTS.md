@@ -269,8 +269,8 @@ This IS the product. Without this, Loop is just another chatbot.
 
 | # | EPIC | Status | Stories |
 |---|------|--------|---------|
-| 1 | Single PDF → Query → Answer | **IN PROGRESS** | 9 stories |
-| 2 | Excel + CSV + Folder Ingest | Backlog | 9 stories |
+| 1 | Single PDF → Query → Answer | ✅ **DONE** | 9 stories |
+| 2 | Excel + CSV + Folder Ingest | ✅ **DONE** | 9 stories |
 | 3 | Feedback Loop | Backlog | 6 stories |
 | 4 | Demo + Benchmark | Backlog | 5 stories |
 | 5 | Eval Loop | Backlog | 7 stories |
@@ -288,7 +288,7 @@ This IS the product. Without this, Loop is just another chatbot.
 | 1.6 | `loop ingest <file>` CLI | ✅ DONE |
 | 1.7 | Pi session with system prompt | ✅ DONE |
 | 1.8 | `loop query` CLI | ✅ DONE |
-| 1.9 | End-to-end acceptance test | Backlog |
+| 1.9 | End-to-end acceptance test | ✅ DONE |
 
 ### What's Built
 
@@ -328,12 +328,75 @@ This IS the product. Without this, Loop is just another chatbot.
    src/commands/query.ts — streams Pi answer to terminal
    loop query "What state is Best Buy incorporated in?"
    → "Minnesota" with citation [BESTBUY_2023_10K.txt, Page 220]
+
+✅ Story 1.9 — End-to-end acceptance test (Feb 10)
+   tests/acceptance/epic1-e2e.test.ts — 4 real LLM tests
+   Clean corpus → ingest PDF → factual query → numerical query → "I don't know"
+   All pass: correct answers, citations present, no hallucination
+   EPIC 1 COMPLETE ✅
+```
+
+### EPIC 2 Stories
+
+| Story | Title | Status |
+|-------|-------|--------|
+| 2.1 | Excel parser | ✅ DONE |
+| 2.2 | CSV parser | ✅ DONE |
+| 2.3 | Ingest routes files to correct parser | ✅ DONE |
+| 2.4 | Folder ingest | ✅ DONE |
+| 2.5 | Incremental ingest | ✅ DONE |
+| 2.6 | Single-format Excel query | ✅ DONE |
+| 2.7 | Single-format CSV query | ✅ DONE |
+| 2.8 | Cross-format conflict detection | ✅ DONE |
+| 2.9 | "I don't know" response | ✅ DONE |
+
+### What's Built (EPIC 2)
+
+```
+✅ Fixtures created (Feb 10)
+   fixtures/fleet_sample.xlsx — 3 sheets, 10 aircraft, maintenance reserves
+   fixtures/utilization_sample.csv — 10 rows, flight hours, storage status
+   fixtures/sample_lease.pdf — 3 pages, MSN 4521 lease agreement
+   fixtures/sample_amendment.pdf — 1 page, changes engine reserve $350→$420/FH
+
+✅ Story 2.1 — Excel parser (Feb 10)
+   src/parsers/excel.ts — parseExcel() using exceljs
+   Sheet markers, pipe-delimited rows, header detection
+
+✅ Story 2.2 — CSV parser (Feb 10)
+   src/parsers/csv.ts — parseCsv() using papaparse
+   Pipe-delimited output, handles empty cells
+
+✅ Story 2.3 — Ingest routing (Feb 10)
+   src/commands/ingest.ts — routes .pdf/.xlsx/.xls/.csv to correct parser
+   Rejects unsupported formats with clear error
+
+✅ Story 2.4 — Folder ingest (Feb 10)
+   loop ingest fixtures/ → scans recursively, ingests all supported files
+   Per-file progress with ✅/❌ indicators
+
+✅ Story 2.5 — Incremental ingest (Feb 10)
+   Re-running ingest skips already-ingested files
+   Shows "already ingested, skipping" message
+
+✅ Story 2.6 — Excel query (Feb 10)
+   "What type is MSN 4521?" → "B777-300ER" from fleet spreadsheet
+
+✅ Story 2.7 — CSV query (Feb 10)
+   "Which aircraft had zero flight hours?" → "MSN 4521, In Storage"
+
+✅ Story 2.8 — Cross-format conflict detection (Feb 10)
+   Detects $350/FH (Excel) vs $420/FH (amendment PDF) conflict
+   Cites both sources, notes the change
+
+✅ Story 2.9 — "I don't know" response (Feb 10)
+   "What is the insurance requirement?" → correctly says not found
+   No hallucination. Lists what was searched.
 ```
 
 ### Blockers
 
-- Test fixtures needed from Satish by Feb 14 (sample_lease.pdf, fleet_sample.xlsx, etc.)
-- For EPIC 1, we can use any multi-page PDF as a stand-in
+- None currently
 
 ---
 

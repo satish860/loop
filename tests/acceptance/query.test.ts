@@ -5,7 +5,7 @@ import { join } from "path";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
-const PDF = "dataset/BESTBUY_2023_10K.pdf";
+const PDF = "fixtures/BESTBUY_2023_10K.pdf";
 
 describe("Story 1.8: loop query CLI", () => {
   beforeAll(() => {

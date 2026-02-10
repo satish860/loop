@@ -8,7 +8,7 @@ const CORPUS_DIR = join(
   ".loop",
   "corpus"
 );
-const PDF = "dataset/BESTBUY_2023_10K.pdf";
+const PDF = "fixtures/BESTBUY_2023_10K.pdf";
 const opts: ExecSyncOptionsWithStringEncoding = { encoding: "utf-8" };
 
 describe("Story 1.6: loop ingest CLI", () => {

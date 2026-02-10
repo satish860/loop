@@ -3,22 +3,22 @@ import { existsSync, readFileSync, rmSync, mkdirSync } from "fs";
 import { parsePdf } from "../../src/parsers/pdf.js";
 import { CorpusManager } from "../../src/core/corpus.js";
 
-const TEST_CORPUS = "dataset/test-corpus";
-const PDF = "dataset/BESTBUY_2023_10K.pdf";
-const PARSED_TMP = "dataset/test-corpus-tmp/parsed.txt";
+const TEST_CORPUS = "fixtures/test-corpus";
+const PDF = "fixtures/BESTBUY_2023_10K.pdf";
+const PARSED_TMP = "fixtures/test-corpus-tmp/parsed.txt";
 
 describe("Story 1.4 + 1.5: Corpus manager + INDEX.md", () => {
   let corpus: CorpusManager;
 
   beforeAll(() => {
     rmSync(TEST_CORPUS, { recursive: true, force: true });
-    mkdirSync("dataset/test-corpus-tmp", { recursive: true });
+    mkdirSync("fixtures/test-corpus-tmp", { recursive: true });
     corpus = new CorpusManager(TEST_CORPUS);
   });
 
   afterAll(() => {
     rmSync(TEST_CORPUS, { recursive: true, force: true });
-    rmSync("dataset/test-corpus-tmp", { recursive: true, force: true });
+    rmSync("fixtures/test-corpus-tmp", { recursive: true, force: true });
   });
 
   it("addDocument copies parsed text to corpus", async () => {
@@ -77,7 +77,7 @@ describe("Story 1.4 + 1.5: Corpus manager + INDEX.md", () => {
       pages: 1,
     };
     // Need the tmp file to exist
-    mkdirSync("dataset/test-corpus-tmp", { recursive: true });
+    mkdirSync("fixtures/test-corpus-tmp", { recursive: true });
     const parsed = parsePdf(PDF, PARSED_TMP);
     return parsed.then((r) => {
       fresh.addDocument(r);

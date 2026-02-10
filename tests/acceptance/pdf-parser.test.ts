@@ -3,8 +3,8 @@ import { execSync } from "child_process";
 import { existsSync, readFileSync } from "fs";
 
 describe("Story 1.2: Python PDF parser", () => {
-  const pdf = "dataset/BESTBUY_2023_10K.pdf";
-  const outFile = "dataset/BESTBUY_2023_10K_parsed.txt";
+  const pdf = "fixtures/BESTBUY_2023_10K.pdf";
+  const outFile = "fixtures/BESTBUY_2023_10K_parsed.txt";
 
   it("extracts text with page markers to stdout", () => {
     const output = execSync(`python python/parse_pdf.py ${pdf}`, {

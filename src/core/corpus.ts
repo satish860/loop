@@ -48,8 +48,9 @@ export class CorpusManager {
       rows: result.rows,
     };
 
-    // Store source mapping so INDEX.md can show original filenames
+    // Store source mapping and metadata
     this.saveSourceMap(txtName, result.source);
+    this.saveMetaMap(txtName, result);
     this.updateIndex();
     return meta;
   }
@@ -81,15 +82,27 @@ export class CorpusManager {
   listDocuments(): DocumentMeta[] {
     if (!existsSync(this.dir)) return [];
 
+    const sourceMap = this.loadSourceMap();
+    const metaMap = this.loadMetaMap();
+
     return readdirSync(this.dir)
       .filter((f) => f.endsWith(".txt"))
       .map((f) => {
-        const summary = this.extractSummary(join(this.dir, f), "pdf");
+        const original = sourceMap[f] || f;
+        const meta = metaMap[f] || {};
+        const ext = original.split(".").pop()?.toLowerCase() || "";
+        const format = ext === "pdf" ? "pdf"
+          : (ext === "xlsx" || ext === "xls") ? "excel"
+          : ext === "csv" ? "csv" : "pdf";
+        const summary = this.extractSummary(join(this.dir, f), format);
         return {
           filename: f,
-          source: f,
-          format: "pdf" as const,
+          source: original,
+          format: format as "pdf" | "excel" | "csv",
           summary,
+          pages: meta.pages,
+          sheets: meta.sheets,
+          rows: meta.rows,
         };
       });
   }
@@ -110,16 +123,41 @@ export class CorpusManager {
     writeFileSync(join(this.dir, "sources.json"), JSON.stringify(map, null, 2), "utf-8");
   }
 
+  /** Load metadata map: txt filename → {pages, sheets, rows} */
+  private loadMetaMap(): Record<string, { pages?: number; sheets?: number; rows?: number }> {
+    const mapPath = join(this.dir, "meta.json");
+    if (existsSync(mapPath)) {
+      return JSON.parse(readFileSync(mapPath, "utf-8"));
+    }
+    return {};
+  }
+
+  /** Save metadata for a document */
+  private saveMetaMap(txtName: string, result: ParseResult): void {
+    const map = this.loadMetaMap();
+    map[txtName] = { pages: result.pages, sheets: result.sheets, rows: result.rows };
+    writeFileSync(join(this.dir, "meta.json"), JSON.stringify(map, null, 2), "utf-8");
+  }
+
   /** Regenerate INDEX.md — Pi reads this first to decide which documents to open */
   private updateIndex(): void {
     const files = readdirSync(this.dir).filter((f) => f.endsWith(".txt"));
     const count = files.length;
     const sourceMap = this.loadSourceMap();
+    const metaMap = this.loadMetaMap();
 
     const entries = files.map((f) => {
       const original = sourceMap[f] || f;
-      const summary = this.extractSummary(join(this.dir, f), "pdf");
-      return `- ${f} (original: ${original}): ${summary}`;
+      const meta = metaMap[f] || {};
+      const ext = original.split(".").pop()?.toLowerCase() || "";
+
+      let sizeInfo = "";
+      if (ext === "pdf" && meta.pages) sizeInfo = `PDF, ${meta.pages} pages`;
+      else if ((ext === "xlsx" || ext === "xls") && meta.sheets) sizeInfo = `Excel, ${meta.sheets} sheets, ${meta.rows ?? "?"} rows`;
+      else if (ext === "csv" && meta.rows) sizeInfo = `CSV, ${meta.rows} rows`;
+
+      const summary = this.extractSummary(join(this.dir, f), ext === "csv" ? "csv" : ext === "pdf" ? "pdf" : "excel");
+      return `- ${f} (${sizeInfo}, original: ${original}): ${summary}`;
     });
 
     const lines = [

@@ -4,8 +4,8 @@ import { parsePdf } from "../../src/parsers/pdf.js";
 import { CorpusManager } from "../../src/core/corpus.js";
 import { createLoopSession } from "../../src/core/session.js";
 
-const TEST_CORPUS = "dataset/test-session-corpus";
-const PDF = "dataset/BESTBUY_2023_10K.pdf";
+const TEST_CORPUS = "fixtures/test-session-corpus";
+const PDF = "fixtures/BESTBUY_2023_10K.pdf";
 
 describe("Story 1.7: Pi session with system prompt", () => {
   beforeAll(async () => {
