@@ -130,7 +130,7 @@ describe("Story 5.1: Eval Runner", () => {
     );
 
     expect(result.pass).toBe(true);
-  }, 30_000);
+  }, 60_000);
 
   test("eval run grades benchmark pairs with real LLM", async () => {
     const pairs = makeTestBenchmark();

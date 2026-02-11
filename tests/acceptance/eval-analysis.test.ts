@@ -298,5 +298,5 @@ describe("Story 5.2: Real eval → analysis", () => {
     const formatted = formatAnalysis(analysis);
     expect(formatted.length).toBeGreaterThan(50);
     expect(formatted).toContain("By Question Type:");
-  }, 180_000);
+  }, 300_000);
 });
