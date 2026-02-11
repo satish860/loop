@@ -272,8 +272,8 @@ This IS the product. Without this, Loop is just another chatbot.
 | 1 | Single PDF → Query → Answer | ✅ **DONE** | 9 stories |
 | 2 | Excel + CSV + Folder Ingest | ✅ **DONE** | 9 stories |
 | 3 | Chat + Signal Capture | ✅ **DONE** | 6 stories |
-| 4 | Benchmark Builder (Generate QA + Validate) | **IN PROGRESS** | 5 stories |
-| 5 | Eval Loop (The Curve) | Backlog | 6 stories |
+| 4 | Benchmark Builder (Generate QA + Validate) | ✅ **DONE** | 5 stories (1 deferred) |
+| 5 | Eval Loop (The Curve) | **IN PROGRESS** | 6 stories |
 | 6 | Ship | Backlog | 5 stories |
 
 > **Note:** EPICs 3-6 were rewritten on Feb 10 based on research into ACE paper (Stanford),
@@ -528,6 +528,35 @@ This IS the product. Without this, Loop is just another chatbot.
    FinanceBench (336 PDF download) is a nice-to-have, not a blocker for the eval loop.
 
    EPIC 4 COMPLETE (4/5 stories done, 1 deferred) ✅
+```
+
+### EPIC 5 Stories
+
+| Story | Title | Status |
+|-------|-------|--------|
+| 5.1 | Eval runner | ✅ DONE |
+| 5.2 | Error analysis by dimension | BACKLOG |
+| 5.3 | LLM judge with critiques | BACKLOG |
+| 5.4 | System prompt improvement | BACKLOG |
+| 5.5 | The curve (eval history) | BACKLOG |
+| 5.6 | Mine chat logs for QA pairs | BACKLOG |
+
+### What's Built (EPIC 5)
+
+```
+✅ Story 5.1 — Eval Runner (Feb 11)
+   src/eval/grader.ts — LLM-based semantic answer comparison
+   src/eval/runner.ts — orchestrates eval runs (fresh session per pair)
+   src/commands/eval.ts — loop eval --benchmark <name> [--limit N] CLI
+   Grader: binary pass/fail with one-line reason, handles not_answerable
+   Runner: loads benchmark, runs each pair through Pi, grades, saves JSONL
+   Storage: ~/.loop/eval/runs/{benchmark}-{timestamp}.jsonl
+   Each run: meta line + result lines + summary line (crash-safe incremental writes)
+   loadEvalRun(), loadLatestRun(), listEvalRuns() for reading back results
+   loop eval (no args) shows run history overview
+   Supports --benchmark custom@v1 for versioned benchmarks
+   9 tests: grader pass/fail/not_answerable, full eval run, JSONL persistence,
+            loadEvalRun, listEvalRuns, --limit, loadLatestRun
 ```
 
 ### Blockers

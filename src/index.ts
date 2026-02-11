@@ -7,6 +7,7 @@ import { chat } from "./commands/chat.js";
 import { status } from "./commands/status.js";
 import { configShow, configSet } from "./commands/config.js";
 import { generateQACommand } from "./commands/generate-qa.js";
+import { evalCommand } from "./commands/eval.js";
 
 const program = new Command();
 
@@ -54,9 +55,11 @@ program
 
 program
   .command("eval")
-  .description("Review answers, detect patterns, run judge, improve")
-  .action(() => {
-    console.log("TODO: eval");
+  .description("Run benchmark eval, grade answers, show accuracy")
+  .option("-b, --benchmark <name>", "Benchmark to run (e.g., custom, custom@v1)")
+  .option("-l, --limit <number>", "Max pairs to evaluate (cost control)")
+  .action(async (options: { benchmark?: string; limit?: string }) => {
+    await evalCommand({ benchmark: options.benchmark, limit: options.limit });
   });
 
 program
