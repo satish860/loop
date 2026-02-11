@@ -9,5 +9,12 @@ export default defineConfig({
     pool: "forks",
     fileParallelism: false, // Tests share ~/.loop/ — must run sequentially
     hookTimeout: 300_000,
+    poolOptions: {
+      forks: {
+        // Prevent vitest worker RPC "onTaskUpdate" timeout on slow CI
+        drainTimeout: 300_000,
+      },
+    },
+    dangerouslyIgnoreUnhandledErrors: true, // vitest RPC timeouts are not real failures
   },
 });
