@@ -5,6 +5,7 @@ import { execSync } from "child_process";
 import { ChatSession } from "../../src/core/chat-session.js";
 import { analyzeSession, detectSignals } from "../../src/core/signal-detector.js";
 import { CHAT_LOGS_DIR } from "../../src/core/session-logger.js";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
@@ -24,7 +25,9 @@ function ingestFixtures() {
  */
 describe("Story 3.3: Implicit signal detection", () => {
   beforeAll(() => {
+    const cfg = backupConfig();
     rmSync(LOOP_DIR, { recursive: true, force: true });
+    restoreConfig(cfg);
     ingestFixtures();
   }, 120_000);
 

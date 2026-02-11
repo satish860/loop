@@ -10,6 +10,7 @@ import {
   VALID_PERSONAS,
   CONFIG_PATH,
 } from "../../src/core/config.js";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
@@ -36,14 +37,17 @@ function runCLI(args: string): string {
  */
 describe("Story 3.4: Persona support", () => {
   beforeAll(() => {
+    const cfg = backupConfig();
     rmSync(LOOP_DIR, { recursive: true, force: true });
+    restoreConfig(cfg);
     ingestFixtures();
   }, 120_000);
 
   afterEach(() => {
-    // Reset config to defaults after each test
+    // Reset persona but preserve model config
     if (existsSync(CONFIG_PATH)) {
-      saveConfig({ persona: "general" });
+      const current = loadConfig();
+      saveConfig({ ...current, persona: "general" });
     }
   });
 

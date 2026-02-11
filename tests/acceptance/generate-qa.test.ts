@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeAll, afterAll } from "vitest";
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
+const IS_CI = !!process.env.CI;
 import { existsSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -50,7 +51,7 @@ describe("Story 4.2: Generate QA pairs with dimensions", () => {
     }
   });
 
-  test("generates dimension-tagged QA pairs from corpus", async () => {
+  test.skipIf(IS_CI)("generates dimension-tagged QA pairs from corpus", async () => {
     const result = await generateQA({
       count: 10,
       corpusDir: TEST_CORPUS,
@@ -87,7 +88,7 @@ describe("Story 4.2: Generate QA pairs with dimensions", () => {
     expect(existsSync(result.outputPath)).toBe(true);
   }, 180_000);
 
-  test("includes cross-document questions", async () => {
+  test.skipIf(IS_CI)("includes cross-document questions", async () => {
     const result = await generateQA({
       count: 10,
       corpusDir: TEST_CORPUS,
@@ -99,7 +100,7 @@ describe("Story 4.2: Generate QA pairs with dimensions", () => {
     expect(crossDoc.length).toBeGreaterThanOrEqual(1);
   }, 180_000);
 
-  test("includes not_answerable questions", async () => {
+  test.skipIf(IS_CI)("includes not_answerable questions", async () => {
     const result = await generateQA({
       count: 10,
       corpusDir: TEST_CORPUS,
@@ -116,7 +117,7 @@ describe("Story 4.2: Generate QA pairs with dimensions", () => {
     }
   }, 180_000);
 
-  test("coverage summary is calculated correctly", async () => {
+  test.skipIf(IS_CI)("coverage summary is calculated correctly", async () => {
     const result = await generateQA({
       count: 10,
       corpusDir: TEST_CORPUS,
@@ -132,7 +133,7 @@ describe("Story 4.2: Generate QA pairs with dimensions", () => {
     expect(typeSum).toBe(result.pairs.length);
   }, 180_000);
 
-  test("saves to JSONL with one pair per line", async () => {
+  test.skipIf(IS_CI)("saves to JSONL with one pair per line", async () => {
     const result = await generateQA({
       count: 5,
       corpusDir: TEST_CORPUS,

@@ -2,9 +2,16 @@ import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import { execSync } from "child_process";
 import { existsSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
+
+function cleanLoop() {
+  const cfg = backupConfig();
+  rmSync(LOOP_DIR, { recursive: true, force: true });
+  restoreConfig(cfg);
+}
 const CORPUS_DIR = join(LOOP_DIR, "corpus");
 
 function run(cmd: string): string {
@@ -15,7 +22,7 @@ function run(cmd: string): string {
 }
 
 describe("Story 2.3: Ingest routes files to correct parser", () => {
-  beforeAll(() => rmSync(LOOP_DIR, { recursive: true, force: true }));
+  beforeAll(() => cleanLoop());
 
   it("ingests PDF via PDF parser", () => {
     const out = run("ingest fixtures/sample_lease.pdf");
@@ -60,7 +67,7 @@ describe("Story 2.3: Ingest routes files to correct parser", () => {
 });
 
 describe("Story 2.4: Folder ingest", () => {
-  beforeEach(() => rmSync(LOOP_DIR, { recursive: true, force: true }));
+  beforeEach(() => cleanLoop());
 
   it("ingests all supported files from a folder", () => {
     const out = run("ingest fixtures/");
@@ -75,12 +82,12 @@ describe("Story 2.4: Folder ingest", () => {
     expect(existsSync(join(CORPUS_DIR, "BESTBUY_2023_10K.txt"))).toBe(true);
 
     const index = readFileSync(join(CORPUS_DIR, "INDEX.md"), "utf-8");
-    expect(index).toContain("5 documents");
+    expect(index).toContain("6 documents");
   });
 });
 
 describe("Story 2.5: Incremental ingest", () => {
-  beforeEach(() => rmSync(LOOP_DIR, { recursive: true, force: true }));
+  beforeEach(() => cleanLoop());
 
   it("skips already-ingested files on re-run", () => {
     // First ingest

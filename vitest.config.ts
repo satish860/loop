@@ -3,16 +3,15 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
-    testTimeout: 120_000, // 2 min — real LLM calls take time
-    teardownTimeout: 30_000,
+    testTimeout: 300_000, // 5 min — OpenRouter/Kimi K2.5 can be slow
+    teardownTimeout: 60_000,
     pool: "forks",
     poolOptions: {
       forks: {
-        // Long-running LLM tests need generous IPC timeout
         execArgv: [],
+        // Tests run in parallel forks by default
       },
     },
-    // Suppress vitest's internal RPC timeout for long-running test suites
-    hookTimeout: 120_000,
+    hookTimeout: 300_000,
   },
 });

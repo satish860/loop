@@ -3,6 +3,7 @@ import { rmSync, existsSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
 import { ChatSession } from "../../src/core/chat-session.js";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
@@ -23,7 +24,9 @@ function ingestFixtures() {
  */
 describe("Story 3.1: Interactive chat session", () => {
   beforeAll(() => {
+    const cfg = backupConfig();
     rmSync(LOOP_DIR, { recursive: true, force: true });
+    restoreConfig(cfg);
     ingestFixtures();
   }, 120_000);
 

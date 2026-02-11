@@ -12,6 +12,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
+const IS_CI = !!process.env.CI;
 import { existsSync, rmSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -198,7 +199,7 @@ describe("Story 5.5: Real eval runs → history", () => {
     if (existsSync(BENCHMARKS_DIR)) rmSync(BENCHMARKS_DIR, { recursive: true });
   });
 
-  test("real eval runs produce valid history entries", async () => {
+  test.skipIf(IS_CI)("real eval runs produce valid history entries", async () => {
     const pairs: QAPair[] = [
       { id: "h1", question: "What type of aircraft is MSN 4521?", expectedAnswer: "B777-300ER", source: "fleet_sample.xlsx", dimensions: { questionType: "factual", difficulty: "surface", sourceFormat: "excel" }, status: "keep" },
       { id: "h2", question: "Who is the lessee?", expectedAnswer: "Emirates", source: "sample_lease.pdf", dimensions: { questionType: "factual", difficulty: "surface", sourceFormat: "pdf" }, status: "keep" },

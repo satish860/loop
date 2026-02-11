@@ -2,21 +2,18 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { execSync, ExecSyncOptionsWithStringEncoding } from "child_process";
 import { existsSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
-const CORPUS_DIR = join(
-  process.env.HOME ?? process.env.USERPROFILE ?? "~",
-  ".loop",
-  "corpus"
-);
+const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
+const CORPUS_DIR = join(HOME, ".loop", "corpus");
 const PDF = "fixtures/BESTBUY_2023_10K.pdf";
 const opts: ExecSyncOptionsWithStringEncoding = { encoding: "utf-8" };
 
 describe("Story 1.6: loop ingest CLI", () => {
   beforeAll(() => {
-    rmSync(join(process.env.HOME ?? process.env.USERPROFILE ?? "~", ".loop"), {
-      recursive: true,
-      force: true,
-    });
+    const cfg = backupConfig();
+    rmSync(join(HOME, ".loop"), { recursive: true, force: true });
+    restoreConfig(cfg);
   });
 
   it("ingests a PDF and shows progress", () => {

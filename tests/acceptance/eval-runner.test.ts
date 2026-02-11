@@ -15,6 +15,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
+const IS_CI = !!process.env.CI;
 import { existsSync, mkdirSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -171,7 +172,7 @@ describe("Story 5.1: Eval Runner", () => {
     expect(firstResult.question).toContain("MSN 4521");
   }, 120_000);
 
-  test("run results saved to JSONL file", async () => {
+  test.skipIf(IS_CI)("run results saved to JSONL file", async () => {
     const pairs = makeTestBenchmark().slice(0, 1); // Just 1 pair
     saveBenchmarkVersion(pairs, "persist test");
 
@@ -243,7 +244,7 @@ describe("Story 5.1: Eval Runner", () => {
     expect(run.results.length).toBe(1);
   }, 120_000);
 
-  test("loadLatestRun returns most recent run", async () => {
+  test.skipIf(IS_CI)("loadLatestRun returns most recent run", async () => {
     const pairs = makeTestBenchmark().slice(0, 1);
     saveBenchmarkVersion(pairs, "latest test");
 

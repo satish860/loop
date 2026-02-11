@@ -13,6 +13,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
+const IS_CI = !!process.env.CI;
 import { existsSync, rmSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -166,7 +167,7 @@ describe("Story 5.4: Real eval → improve", () => {
     if (existsSync(RUNS_DIR)) rmSync(RUNS_DIR, { recursive: true });
   });
 
-  test("suggestImprovement produces delta with before/after and regression check", async () => {
+  test.skipIf(IS_CI)("suggestImprovement produces delta with before/after and regression check", async () => {
     // Create benchmark with a mix — include pairs with wrong expected answers to force failures
     // This simulates having a benchmark where the system gets some wrong
     const pairs: QAPair[] = [

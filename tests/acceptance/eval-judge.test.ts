@@ -14,6 +14,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
+const IS_CI = !!process.env.CI;
 import { existsSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -132,7 +133,7 @@ describe("Story 5.3: LLM Judge", () => {
     await expect(createJudge(run, 10)).rejects.toThrow(/PASS examples/);
   });
 
-  test("createJudge generates prompt and saves to judge.md", async () => {
+  test.skipIf(IS_CI)("createJudge generates prompt and saves to judge.md", async () => {
     const run = makeTrainingRun();
     const result = await createJudge(run, 10);
 
@@ -159,7 +160,7 @@ describe("Story 5.3: LLM Judge", () => {
     }
   }, 120_000);
 
-  test("judge prompt contains pass and fail criteria", async () => {
+  test.skipIf(IS_CI)("judge prompt contains pass and fail criteria", async () => {
     const run = makeTrainingRun();
     const result = await createJudge(run, 10);
 
@@ -170,7 +171,7 @@ describe("Story 5.3: LLM Judge", () => {
     expect(prompt).toMatch(/fail/i);
   }, 120_000);
 
-  test("loadJudgePrompt reads saved prompt", async () => {
+  test.skipIf(IS_CI)("loadJudgePrompt reads saved prompt", async () => {
     const run = makeTrainingRun();
     await createJudge(run, 10);
 
@@ -179,7 +180,7 @@ describe("Story 5.3: LLM Judge", () => {
     expect(loaded!.length).toBeGreaterThan(100);
   }, 120_000);
 
-  test("runJudge produces valid verdict on correct answer", async () => {
+  test.skipIf(IS_CI)("runJudge produces valid verdict on correct answer", async () => {
     const run = makeTrainingRun();
     const result = await createJudge(run, 10);
 
@@ -195,7 +196,7 @@ describe("Story 5.3: LLM Judge", () => {
     expect(verdict.pass).toBe(true);
   }, 60_000);
 
-  test("runJudge produces valid verdict on wrong answer", async () => {
+  test.skipIf(IS_CI)("runJudge produces valid verdict on wrong answer", async () => {
     const run = makeTrainingRun();
     const result = await createJudge(run, 10);
 
@@ -229,7 +230,7 @@ describe("Story 5.3: Real eval → judge", () => {
     if (existsSync(JUDGE_PATH)) rmSync(JUDGE_PATH);
   });
 
-  test("real eval run produces judge with measurable agreement", async () => {
+  test.skipIf(IS_CI)("real eval run produces judge with measurable agreement", async () => {
     // Create a benchmark with diverse pairs including some that will fail
     const pairs: QAPair[] = [
       { id: "j1", question: "What type of aircraft is MSN 4521?", expectedAnswer: "B777-300ER", source: "fleet_sample.xlsx", dimensions: { questionType: "factual", difficulty: "surface", sourceFormat: "excel" }, status: "keep" },

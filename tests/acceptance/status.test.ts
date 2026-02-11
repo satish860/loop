@@ -4,9 +4,16 @@ import { rmSync, existsSync } from "fs";
 import { join } from "path";
 import { ChatSession } from "../../src/core/chat-session.js";
 import { saveConfig } from "../../src/core/config.js";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
+
+function cleanLoop() {
+  const cfg = backupConfig();
+  rmSync(LOOP_DIR, { recursive: true, force: true });
+  restoreConfig(cfg);
+}
 
 function run(cmd: string): string {
   return execSync(`npx tsx src/index.ts ${cmd}`, {
@@ -23,7 +30,7 @@ function run(cmd: string): string {
 describe("Story 3.5: loop status command", () => {
   describe("empty state", () => {
     it("shows empty corpus message when nothing ingested", () => {
-      rmSync(LOOP_DIR, { recursive: true, force: true });
+      cleanLoop();
       const out = run("status");
       expect(out).toContain("No documents ingested");
     });
@@ -31,7 +38,7 @@ describe("Story 3.5: loop status command", () => {
 
   describe("with corpus and sessions", () => {
     beforeAll(() => {
-      rmSync(LOOP_DIR, { recursive: true, force: true });
+      cleanLoop();
       execSync("npx tsx src/index.ts ingest fixtures/", {
         encoding: "utf-8",
         timeout: 120_000,
@@ -76,7 +83,7 @@ describe("Story 3.5: loop status command", () => {
 
     it("works with empty corpus (shows help)", () => {
       // Point to a non-existent corpus
-      rmSync(LOOP_DIR, { recursive: true, force: true });
+      cleanLoop();
       const out = run("status");
       expect(out).toContain("No documents ingested");
       expect(out).toMatch(/loop ingest/);

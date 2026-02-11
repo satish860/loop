@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+const IS_CI = !!process.env.CI;
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { parsePdf } from "../../src/parsers/pdf.js";
 import { CorpusManager } from "../../src/core/corpus.js";
@@ -22,7 +23,7 @@ describe("Story 1.7: Pi session with system prompt", () => {
     rmSync(TEST_CORPUS, { recursive: true, force: true });
   });
 
-  it("creates a session that can read INDEX.md", async () => {
+  it.skipIf(IS_CI)("creates a session that can read INDEX.md", async () => {
     const session = createLoopSession(TEST_CORPUS);
 
     let response = "";

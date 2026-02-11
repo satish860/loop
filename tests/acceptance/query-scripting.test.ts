@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { rmSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
@@ -30,13 +31,21 @@ function run(cmd: string): { stdout: string; stderr: string; exitCode: number } 
  * --json for piping. Exit code 0 on success, 1 on error.
  */
 describe("Story 3.6: loop query for scripting", () => {
+  let configBackup: string | null;
+
   beforeAll(() => {
+    configBackup = backupConfig();
     rmSync(LOOP_DIR, { recursive: true, force: true });
+    restoreConfig(configBackup);
     execSync("npx tsx src/index.ts ingest fixtures/", {
       encoding: "utf-8",
       timeout: 120_000,
     });
   }, 120_000);
+
+  afterAll(() => {
+    restoreConfig(configBackup);
+  });
 
   it("outputs answer to stdout and exits", () => {
     const { stdout, exitCode } = run('query "What type of aircraft is MSN 4521?"');

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { execSync } from "child_process";
 import { rmSync } from "fs";
 import { join } from "path";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
@@ -15,7 +16,9 @@ function run(cmd: string, timeout = 120_000): string {
 
 describe("EPIC 2 Queries", () => {
   beforeAll(() => {
+    const cfg = backupConfig();
     rmSync(LOOP_DIR, { recursive: true, force: true });
+    restoreConfig(cfg);
     // Ingest all fixtures at once
     run("ingest fixtures/", 60_000);
   }, 60_000);

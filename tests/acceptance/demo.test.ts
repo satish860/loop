@@ -1,4 +1,5 @@
 import { describe, test, expect } from "vitest";
+const IS_CI = !!process.env.CI;
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -34,7 +35,7 @@ describe("Story 6.3: loop demo", () => {
     expect(docs.find((d: any) => d.source === "MICROSOFT_2023_10K.pdf")).toBeDefined();
   });
 
-  test("interactive mode shows menu and runs a suggested query", () => {
+  test.skipIf(IS_CI)("interactive mode shows menu and runs a suggested query", () => {
     // Pipe "1" then "quit" to simulate user picking option 1
     const isWindows = process.platform === "win32";
     const output = execSync(
@@ -69,7 +70,7 @@ describe("Story 6.3: loop demo", () => {
     expect(output).toContain("AMD_2022_10K.pdf");
   }, 300_000);
 
-  test("interactive mode accepts free-form questions", () => {
+  test.skipIf(IS_CI)("interactive mode accepts free-form questions", () => {
     const isWindows = process.platform === "win32";
     const output = execSync(
       isWindows

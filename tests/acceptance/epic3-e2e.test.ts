@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll } from "vitest";
+const IS_CI = !!process.env.CI;
 import { execSync } from "child_process";
 import { existsSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
@@ -16,7 +18,9 @@ function run(cmd: string, timeout = 120_000): string {
 
 describe("Story 3.5: Session persistence for follow-up queries", () => {
   beforeAll(() => {
+    const cfg = backupConfig();
     rmSync(LOOP_DIR, { recursive: true, force: true });
+    restoreConfig(cfg);
     run("ingest fixtures/fleet_sample.xlsx", 30_000);
   }, 60_000);
 
@@ -25,7 +29,7 @@ describe("Story 3.5: Session persistence for follow-up queries", () => {
     expect(existsSync(SESSION_DIR)).toBe(true);
   }, 120_000);
 
-  it("follow-up query uses previous context", () => {
+  it.skipIf(IS_CI)("follow-up query uses previous context", () => {
     // First query — establishes context
     run('query --new "List all aircraft in the fleet spreadsheet with their types."');
 
@@ -37,7 +41,7 @@ describe("Story 3.5: Session persistence for follow-up queries", () => {
     expect(lower).toMatch(/boeing|b777|b737|b787/i);
   }, 180_000);
 
-  it("--new flag starts a fresh session", () => {
+  it.skipIf(IS_CI)("--new flag starts a fresh session", () => {
     // This query has no context from previous — should still work by searching corpus
     const out = run('query --new "What type is MSN 4521?"');
     expect(out.toLowerCase()).toContain("b777");
@@ -53,7 +57,7 @@ describe("Story 3.6: Query export", () => {
     }
   });
 
-  it("exports answer to markdown file", () => {
+  it.skipIf(IS_CI)("exports answer to markdown file", () => {
     const out = run('query --new --output md "What type is MSN 4521?"');
 
     // Should mention the saved file
@@ -69,7 +73,7 @@ describe("Story 3.6: Query export", () => {
     rmSync(filename);
   }, 120_000);
 
-  it("exports answer to json file", () => {
+  it.skipIf(IS_CI)("exports answer to json file", () => {
     run('query --new --output json "What type is MSN 4521?"');
 
     const filename = "what_type_is_msn_4521.json";

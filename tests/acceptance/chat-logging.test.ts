@@ -4,6 +4,7 @@ import { join } from "path";
 import { execSync } from "child_process";
 import { ChatSession } from "../../src/core/chat-session.js";
 import { CHAT_LOGS_DIR as SESSIONS_DIR } from "../../src/core/session-logger.js";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const LOOP_DIR = join(HOME, ".loop");
@@ -30,7 +31,9 @@ function readSessionLog(filepath: string): Record<string, unknown>[] {
  */
 describe("Story 3.2: Chat session logging", () => {
   beforeAll(() => {
+    const cfg = backupConfig();
     rmSync(LOOP_DIR, { recursive: true, force: true });
+    restoreConfig(cfg);
     ingestFixtures();
   }, 120_000);
 

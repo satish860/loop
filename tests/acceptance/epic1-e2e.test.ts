@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { execSync } from "child_process";
 import { existsSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
+import { backupConfig, restoreConfig } from "./helpers.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const CORPUS_DIR = join(HOME, ".loop", "corpus");
@@ -15,8 +16,10 @@ const PDF = "fixtures/BESTBUY_2023_10K.pdf";
  */
 describe("Story 1.9: End-to-end — PDF ingest → query → correct cited answer", () => {
   beforeAll(() => {
-    // Clean slate
+    // Clean slate — preserve model config for CI
+    const cfg = backupConfig();
     rmSync(join(HOME, ".loop"), { recursive: true, force: true });
+    restoreConfig(cfg);
   });
 
   it("ingests the PDF successfully", () => {
