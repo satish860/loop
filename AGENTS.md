@@ -273,7 +273,7 @@ This IS the product. Without this, Loop is just another chatbot.
 | 2 | Excel + CSV + Folder Ingest | ✅ **DONE** | 9 stories |
 | 3 | Chat + Signal Capture | ✅ **DONE** | 6 stories |
 | 4 | Benchmark Builder (Generate QA + Validate) | ✅ **DONE** | 5 stories (1 deferred) |
-| 5 | Eval Loop (The Curve) | **IN PROGRESS** | 6 stories |
+| 5 | Eval Loop (The Curve) | ✅ **DONE** | 6 stories |
 | 6 | Ship | Backlog | 5 stories |
 
 > **Note:** EPICs 3-6 were rewritten on Feb 10 based on research into ACE paper (Stanford),
@@ -538,8 +538,8 @@ This IS the product. Without this, Loop is just another chatbot.
 | 5.2 | Error analysis by dimension | ✅ DONE |
 | 5.3 | LLM judge with critiques | ✅ DONE |
 | 5.4 | System prompt improvement | ✅ DONE |
-| 5.5 | The curve (eval history) | BACKLOG |
-| 5.6 | Mine chat logs for QA pairs | BACKLOG |
+| 5.5 | The curve (eval history) | ✅ DONE |
+| 5.6 | Mine chat logs for QA pairs | ✅ DONE |
 
 ### What's Built (EPIC 5)
 
@@ -592,6 +592,27 @@ This IS the product. Without this, Loop is just another chatbot.
    loop eval --improve [runId] CLI with full Reflector/Curator/Tester output
    6 tests: no-failures rejection, apply+save, custom file read, default fallback,
             empty history, real eval→improve with delta/before-after/regression check
+
+✅ Story 5.5 — The Curve (Feb 11)
+   src/eval/history.ts — load eval runs chronologically, format THE CURVE
+   loadHistory() — reads all run JSONL files, cross-references improvements
+   formatHistory() — bar chart timeline with improvement notes
+   loop eval --history CLI
+   8 tests: empty, single baseline, multi-run delta, structure, format,
+            improvement notes, benchmark filter, real LLM
+
+✅ Story 5.6 — Mine Chat Logs for QA Pairs (Feb 11)
+   src/eval/chat-miner.ts — extracts QA candidates from chat session logs
+   mineChatsForQA() — scans sessions, detects corrections/satisfaction
+   minedToQAPairs() — converts to QAPair format, deduplicates against benchmark
+   Corrections: high-value (user provided ground truth, confidence 0.9)
+   Satisfied: medium-value (user confirmed answer, confidence 0.7)
+   Regular Q&A: low-value (no signal, confidence 0.4)
+   loop generate-qa --from-chats CLI
+   9 tests: all pure computation (empty, extraction, corrections, satisfaction,
+            filtering, dedup, format, multi-session, non-questions)
+
+   EPIC 5 COMPLETE ✅
 ```
 
 ### Blockers

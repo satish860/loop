@@ -1,5 +1,7 @@
 import { generateQA, type GenerateQAResult } from "../core/qa-generator.js";
 import { exportQAToCSV, importQAFromCSV } from "../core/qa-review.js";
+import { mineChatsForQA, minedToQAPairs } from "../eval/chat-miner.js";
+import { loadVersionedBenchmark } from "../core/benchmark-version.js";
 
 const DIM = "\x1b[2m";
 const RESET = "\x1b[0m";
@@ -11,9 +13,74 @@ export interface GenerateQACliOptions {
   count?: string;
   export?: string;   // "csv" or a file path
   import?: string;   // path to reviewed CSV
+  fromChats?: boolean;
 }
 
 export async function generateQACommand(opts?: GenerateQACliOptions): Promise<void> {
+  // ── From chats mode ──
+  if (opts?.fromChats) {
+    try {
+      const result = mineChatsForQA();
+
+      if (result.sessionsScanned === 0) {
+        console.log(`\nNo chat sessions found. Run ${CYAN}loop chat${RESET} first.\n`);
+        return;
+      }
+
+      console.log(`\n${CYAN}Chat Log Miner${RESET}`);
+      console.log(`Scanned ${result.sessionsScanned} session${result.sessionsScanned !== 1 ? "s" : ""} (${result.turnsScanned} turns)\n`);
+
+      if (result.pairs.length === 0) {
+        console.log("No QA candidates found in chat logs.");
+        console.log(`${DIM}Chat sessions need real questions (not just greetings) to extract pairs.${RESET}\n`);
+        return;
+      }
+
+      // Deduplicate against existing benchmark
+      const existing = loadVersionedBenchmark();
+      const qaPairs = minedToQAPairs(result.pairs, existing?.pairs);
+
+      console.log(`Found ${GREEN}${result.pairs.length}${RESET} QA candidates:`);
+      console.log(`  🔧 Corrections:  ${result.corrections} (high-value — user provided ground truth)`);
+      console.log(`  ✅ Satisfied:    ${result.satisfied} (user confirmed answer was good)`);
+      console.log(`  📝 Regular Q&A:  ${result.regular}`);
+
+      if (existing && result.pairs.length !== qaPairs.length) {
+        console.log(`\n${DIM}Deduplicated: ${result.pairs.length - qaPairs.length} pairs already in benchmark${RESET}`);
+      }
+
+      console.log(`\n${GREEN}${qaPairs.length} new unique pairs${RESET}`);
+
+      // Show samples
+      for (const p of qaPairs.slice(0, 5)) {
+        const icon = p.source?.includes("correction") ? "🔧" : p.source?.includes("satisfied") ? "✅" : "📝";
+        console.log(`  ${icon} "${p.question.slice(0, 60)}${p.question.length > 60 ? "…" : ""}"`);
+        console.log(`     ${DIM}→ ${p.expectedAnswer.slice(0, 70)}${p.expectedAnswer.length > 70 ? "…" : ""}${RESET}`);
+      }
+
+      if (qaPairs.length > 0) {
+        // Save as draft
+        const { writeFileSync } = await import("node:fs");
+        const { join } = await import("node:path");
+        const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
+        const draftPath = join(HOME, ".loop", "benchmarks", "custom", "qa-pairs-draft.jsonl");
+        const { mkdirSync, existsSync } = await import("node:fs");
+        const dir = join(HOME, ".loop", "benchmarks", "custom");
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        writeFileSync(draftPath, qaPairs.map((p) => JSON.stringify(p)).join("\n") + "\n", "utf-8");
+
+        console.log(`\n${DIM}Saved to: ${draftPath}${RESET}`);
+        console.log(`\nNext: ${CYAN}loop generate-qa --export csv${RESET} to review, then ${CYAN}loop generate-qa --import reviewed.csv${RESET}`);
+      }
+
+      console.log("");
+    } catch (err: any) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+    return;
+  }
+
   // ── Export mode ──
   if (opts?.export) {
     try {

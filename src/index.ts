@@ -49,7 +49,8 @@ program
   .option("-c, --count <number>", "Number of QA pairs to generate (default: 50)")
   .option("-e, --export <format>", "Export draft pairs for review (csv)")
   .option("-i, --import <file>", "Import reviewed CSV as validated benchmark")
-  .action(async (options: { count?: string; export?: string; import?: string }) => {
+  .option("--from-chats", "Mine QA pairs from chat session logs")
+  .action(async (options: { count?: string; export?: string; import?: string; fromChats?: boolean }) => {
     await generateQACommand(options);
   });
 
@@ -61,8 +62,9 @@ program
   .option("-a, --analyze [runId]", "Show error analysis by dimension")
   .option("--judge-create [runId]", "Build LLM judge from eval results")
   .option("--improve [runId]", "Suggest system prompt improvement from failures")
-  .action(async (options: { benchmark?: string; limit?: string; analyze?: boolean | string; judgeCreate?: boolean | string; improve?: boolean | string }) => {
-    await evalCommand({ benchmark: options.benchmark, limit: options.limit, analyze: options.analyze, judgeCreate: options.judgeCreate, improve: options.improve });
+  .option("--history", "Show accuracy over time (the curve)")
+  .action(async (options: { benchmark?: string; limit?: string; analyze?: boolean | string; judgeCreate?: boolean | string; improve?: boolean | string; history?: boolean }) => {
+    await evalCommand({ benchmark: options.benchmark, limit: options.limit, analyze: options.analyze, judgeCreate: options.judgeCreate, improve: options.improve, history: options.history });
   });
 
 program

@@ -13,6 +13,7 @@ import { runEval, loadLatestRun, loadEvalRun, listEvalRuns, type EvalResultEntry
 import { analyzeByDimension, formatAnalysis } from "../eval/analyzer.js";
 import { createJudge, loadJudgePrompt } from "../eval/judge.js";
 import { suggestImprovement, applyImprovement } from "../eval/improver.js";
+import { loadHistory, formatHistory } from "../eval/history.js";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -28,6 +29,7 @@ export interface EvalOptions {
   analyze?: boolean | string;
   judgeCreate?: boolean | string;
   improve?: boolean | string;
+  history?: boolean;
 }
 
 export async function evalCommand(opts: EvalOptions): Promise<void> {
@@ -46,6 +48,12 @@ export async function evalCommand(opts: EvalOptions): Promise<void> {
   // --improve: suggest and test system prompt improvement
   if (opts.improve !== undefined && opts.improve !== false) {
     await runImprove(opts.improve);
+    return;
+  }
+
+  // --history: show the curve
+  if (opts.history) {
+    showHistory();
     return;
   }
 
@@ -270,6 +278,15 @@ async function buildJudge(runIdOrFlag: boolean | string): Promise<void> {
     console.error(`\nError: ${(err as Error).message}`);
     process.exit(1);
   }
+}
+
+// ── History ──
+
+function showHistory(): void {
+  const history = loadHistory();
+  console.log("");
+  console.log(formatHistory(history));
+  console.log("");
 }
 
 // ── Improve ──
