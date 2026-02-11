@@ -36,11 +36,17 @@ describe("Story 6.3: loop demo", () => {
 
   test("interactive mode shows menu and runs a suggested query", () => {
     // Pipe "1" then "quit" to simulate user picking option 1
-    const output = execSync(`echo 1\nquit | ${CLI} demo`, {
-      encoding: "utf-8",
-      timeout: 300_000,
-      shell: "cmd.exe",
-    });
+    const isWindows = process.platform === "win32";
+    const output = execSync(
+      isWindows
+        ? `echo 1\nquit | ${CLI} demo`
+        : `printf '1\\nquit\\n' | ${CLI} demo`,
+      {
+        encoding: "utf-8",
+        timeout: 300_000,
+        ...(isWindows ? { shell: "cmd.exe" } : {}),
+      }
+    );
 
     // Menu shown
     expect(output).toContain("Extract facts from a single filing");
@@ -64,12 +70,15 @@ describe("Story 6.3: loop demo", () => {
   }, 300_000);
 
   test("interactive mode accepts free-form questions", () => {
+    const isWindows = process.platform === "win32";
     const output = execSync(
-      `echo What is Microsoft's total revenue?\nquit | ${CLI} demo`,
+      isWindows
+        ? `echo What is Microsoft's total revenue?\nquit | ${CLI} demo`
+        : `printf 'What is Microsoft total revenue?\\nquit\\n' | ${CLI} demo`,
       {
         encoding: "utf-8",
         timeout: 300_000,
-        shell: "cmd.exe",
+        ...(isWindows ? { shell: "cmd.exe" } : {}),
       }
     );
 

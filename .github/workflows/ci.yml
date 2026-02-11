@@ -37,7 +37,11 @@ jobs:
 
       - name: Configure Loop model
         run: |
-          mkdir -p ~/.loop
+          mkdir -p ~/.loop/sessions
+          mkdir -p ~/.loop/corpus
+          mkdir -p ~/.loop/eval/runs
+          mkdir -p ~/.loop/benchmarks/custom
+          mkdir -p ~/.loop/chat-logs
           echo '{"persona":"general","model":"openrouter/moonshotai/kimi-k2.5"}' > ~/.loop/config.json
 
       - name: Verify setup

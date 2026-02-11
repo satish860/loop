@@ -318,7 +318,19 @@ async function createQASession(corpusDir: string): Promise<AgentSession> {
   });
   await loader.reload();
 
+  if (!existsSync(SESSION_DIR)) mkdirSync(SESSION_DIR, { recursive: true });
   const sessionManager = SessionManager.create(corpusDir, SESSION_DIR);
+
+  // Resolve configured model
+  const { loadConfig } = await import("./config.js");
+  let model: any;
+  const configuredModel = loadConfig().model;
+  if (configuredModel) {
+    const slashIdx = configuredModel.indexOf("/");
+    if (slashIdx > 0) {
+      model = modelRegistry.find(configuredModel.substring(0, slashIdx), configuredModel.substring(slashIdx + 1));
+    }
+  }
 
   const { session } = await createAgentSession({
     cwd: corpusDir,
@@ -328,6 +340,7 @@ async function createQASession(corpusDir: string): Promise<AgentSession> {
     settingsManager,
     authStorage,
     modelRegistry,
+    ...(model ? { model } : {}),
   });
 
   return session;

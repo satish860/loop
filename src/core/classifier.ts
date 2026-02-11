@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   createAgentSession,
@@ -72,7 +72,19 @@ export async function classifyDocument(parsedTextPath: string): Promise<DocType>
     });
     await loader.reload();
 
+    if (!existsSync(SESSION_DIR)) mkdirSync(SESSION_DIR, { recursive: true });
     const sessionManager = SessionManager.create(process.cwd(), SESSION_DIR);
+
+    // Resolve configured model
+    let model: any;
+    const { loadConfig } = await import("./config.js");
+    const configuredModel = loadConfig().model;
+    if (configuredModel) {
+      const slashIdx = configuredModel.indexOf("/");
+      if (slashIdx > 0) {
+        model = modelRegistry.find(configuredModel.substring(0, slashIdx), configuredModel.substring(slashIdx + 1));
+      }
+    }
 
     const { session } = await createAgentSession({
       cwd: process.cwd(),
@@ -82,6 +94,7 @@ export async function classifyDocument(parsedTextPath: string): Promise<DocType>
       settingsManager,
       authStorage,
       modelRegistry,
+      ...(model ? { model } : {}),
     });
 
     let response = "";

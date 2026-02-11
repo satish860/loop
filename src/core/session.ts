@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, mkdirSync } from "node:fs";
 import {
   createAgentSession,
   DefaultResourceLoader,
@@ -97,6 +97,9 @@ export async function createLoopSession(
     appendSystemPromptOverride: () => [],
   });
   await loader.reload();
+
+  // Ensure session directory exists
+  if (!existsSync(SESSION_DIR)) mkdirSync(SESSION_DIR, { recursive: true });
 
   // Fresh session or continue the most recent one
   const sessionManager = opts?.fresh
