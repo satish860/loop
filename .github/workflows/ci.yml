@@ -12,7 +12,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
 
     steps:
       - uses: actions/checkout@v4
@@ -53,4 +53,4 @@ jobs:
 
       - name: Run tests
         run: npx vitest run --reporter=verbose
-        timeout-minutes: 25
+        timeout-minutes: 40

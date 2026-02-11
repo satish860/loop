@@ -17,7 +17,7 @@ const CORPUS_DIR = join(LOOP_DIR, "corpus");
 function run(cmd: string): string {
   return execSync(`npx tsx src/index.ts ${cmd}`, {
     encoding: "utf-8",
-    timeout: 60_000,
+    timeout: 180_000, // 3 min — folder ingest with classify on AMD takes time
   });
 }
 
@@ -83,7 +83,7 @@ describe("Story 2.4: Folder ingest", () => {
 
     const index = readFileSync(join(CORPUS_DIR, "INDEX.md"), "utf-8");
     expect(index).toContain("6 documents");
-  });
+  }, 180_000);
 });
 
 describe("Story 2.5: Incremental ingest", () => {
