@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 
+// Global error handlers — no stack traces for users
+process.on("uncaughtException", (err) => {
+  console.error(`Error: ${err.message}`);
+  process.exit(2);
+});
+process.on("unhandledRejection", (reason: any) => {
+  const msg = reason?.message ?? String(reason);
+  console.error(`Error: ${msg}`);
+  process.exit(2);
+});
+
 import { Command } from "commander";
 import { ingest } from "./commands/ingest.js";
 import { query } from "./commands/query.js";
@@ -8,6 +19,33 @@ import { status } from "./commands/status.js";
 import { configShow, configSet } from "./commands/config.js";
 import { generateQACommand } from "./commands/generate-qa.js";
 import { evalCommand } from "./commands/eval.js";
+import { demo } from "./commands/demo.js";
+import { isFirstRun, runOnboarding, runSilentOnboarding } from "./core/onboarding.js";
+
+// ── First-run onboarding ──────────────────────────────────
+// Skip for --version, --help, -V, -h, and config commands.
+const rawArgs = process.argv.slice(2);
+const skipOnboarding =
+  rawArgs.includes("--version") ||
+  rawArgs.includes("-V") ||
+  rawArgs.includes("--help") ||
+  rawArgs.includes("-h") ||
+  rawArgs.includes("--skip-onboarding") ||
+  rawArgs[0] === "config";
+
+if (!skipOnboarding && isFirstRun()) {
+  if (process.stdin.isTTY) {
+    await runOnboarding();
+    // If user ran bare `loop` with no command, exit after onboarding
+    const hasCommand = rawArgs.length > 0 && !rawArgs[0].startsWith("-");
+    if (!hasCommand) {
+      process.exit(0);
+    }
+  } else {
+    // Non-interactive (piped) — create defaults silently
+    runSilentOnboarding();
+  }
+}
 
 const program = new Command();
 
@@ -69,9 +107,10 @@ program
 
 program
   .command("demo")
-  .description("Download FinanceBench and start interactive demo")
-  .action(() => {
-    console.log("TODO: demo");
+  .description("Interactive walkthrough with 10 real SEC filings from FinanceBench")
+  .option("-q, --quick", "Skip queries (ingest only)")
+  .action(async (options: { quick?: boolean }) => {
+    await demo({ quick: options.quick });
   });
 
 program

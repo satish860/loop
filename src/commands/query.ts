@@ -46,7 +46,14 @@ export async function query(question: string, opts?: QueryOptions): Promise<void
   }
 
   const persona = resolvePersona(opts?.persona);
-  const session = await createLoopSession(corpus.dir, { fresh: opts?.new, persona });
+
+  let session;
+  try {
+    session = await createLoopSession(corpus.dir, { fresh: opts?.new, persona });
+  } catch (err: any) {
+    console.error(err.message);
+    process.exit(1);
+  }
 
   let fullResponse = "";
   let answerStarted = false;
@@ -95,7 +102,18 @@ export async function query(question: string, opts?: QueryOptions): Promise<void
     }
   });
 
-  await session.prompt(cleaned);
+  try {
+    await session.prompt(cleaned);
+  } catch (err: any) {
+    const msg = err.message || String(err);
+    if (jsonMode) {
+      process.stdout.write(JSON.stringify({ query: cleaned, error: msg }) + "\n");
+    } else {
+      console.error(`\nError: ${msg}`);
+    }
+    session.dispose();
+    process.exit(1);
+  }
 
   // ── Output ──
   if (jsonMode) {

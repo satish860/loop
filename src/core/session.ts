@@ -10,7 +10,7 @@ import {
   createReadOnlyTools,
   type AgentSession,
 } from "@mariozechner/pi-coding-agent";
-import { PERSONA_PROMPTS, type Persona } from "./config.js";
+import { PERSONA_PROMPTS, loadConfig, type Persona } from "./config.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const SESSION_DIR = join(HOME, ".loop", "sessions");
@@ -60,6 +60,8 @@ export interface SessionOptions {
   fresh?: boolean;
   /** Persona to inject into system prompt */
   persona?: Persona;
+  /** Model override (e.g., "openrouter/moonshotai/kimi-k2.5") */
+  model?: string;
 }
 
 export async function createLoopSession(
@@ -68,6 +70,18 @@ export async function createLoopSession(
 ): Promise<AgentSession> {
   const authStorage = new AuthStorage();
   const modelRegistry = new ModelRegistry(authStorage);
+
+  // Fail fast if no LLM provider is configured
+  const available = modelRegistry.getAvailable();
+  if (available.length === 0) {
+    throw new Error(
+      "No LLM provider configured.\n\n" +
+      "Run `loop` to set up your API key, or set an environment variable:\n" +
+      "  ANTHROPIC_API_KEY=sk-ant-...\n" +
+      "  OPENAI_API_KEY=sk-...\n" +
+      "  GEMINI_API_KEY=..."
+    );
+  }
 
   const settingsManager = SettingsManager.inMemory({
     compaction: { enabled: false },
@@ -89,6 +103,25 @@ export async function createLoopSession(
     ? SessionManager.create(corpusDir, SESSION_DIR)
     : SessionManager.continueRecent(corpusDir, SESSION_DIR);
 
+  // Resolve configured model (e.g., "openrouter/moonshotai/kimi-k2.5")
+  let model: any;
+  const configuredModel = opts?.model ?? loadConfig().model;
+  if (configuredModel) {
+    const slashIdx = configuredModel.indexOf("/");
+    if (slashIdx > 0) {
+      const provider = configuredModel.substring(0, slashIdx);
+      const modelId = configuredModel.substring(slashIdx + 1);
+      model = modelRegistry.find(provider, modelId);
+      if (!model) {
+        throw new Error(
+          `Model "${configuredModel}" not found.\n` +
+          `Check that the provider API key is set (e.g., OPENROUTER_API_KEY) ` +
+          `and the model ID is correct.`
+        );
+      }
+    }
+  }
+
   const { session } = await createAgentSession({
     cwd: corpusDir,
     tools: createReadOnlyTools(corpusDir),
@@ -97,6 +130,7 @@ export async function createLoopSession(
     settingsManager,
     authStorage,
     modelRegistry,
+    ...(model ? { model } : {}),
   });
 
   return session;

@@ -7,10 +7,24 @@
   "bin": {
     "loop": "dist/index.js"
   },
+  "files": [
+    "dist/",
+    "python/",
+    "fixtures/BESTBUY_2023_10K.pdf",
+    "fixtures/AMD_2022_10K.pdf",
+    "fixtures/fleet_sample.xlsx",
+    "fixtures/utilization_sample.csv",
+    "fixtures/sample_lease.pdf",
+    "fixtures/sample_amendment.pdf",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "dev": "npx tsx src/index.ts"
+    "dev": "npx tsx src/index.ts",
+    "prepublishOnly": "npm run build",
+    "postinstall": "node dist/postinstall.js 2>/dev/null || true"
   },
   "dependencies": {
     "@mariozechner/pi-coding-agent": "latest",
@@ -27,5 +41,19 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ai",
+    "document-intelligence",
+    "cli",
+    "eval",
+    "pdf",
+    "finance",
+    "rag"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/niceBoy-CEO/loop.git"
   }
 }

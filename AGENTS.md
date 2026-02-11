@@ -274,7 +274,7 @@ This IS the product. Without this, Loop is just another chatbot.
 | 3 | Chat + Signal Capture | ✅ **DONE** | 6 stories |
 | 4 | Benchmark Builder (Generate QA + Validate) | ✅ **DONE** | 5 stories (1 deferred) |
 | 5 | Eval Loop (The Curve) | ✅ **DONE** | 6 stories |
-| 6 | Ship | Backlog | 5 stories |
+| 6 | Ship | **IN PROGRESS** | 5/6 stories done |
 
 > **Note:** EPICs 3-6 were rewritten on Feb 10 based on research into ACE paper (Stanford),
 > Hamel Husain's eval methodology, Glean AI Evaluator, and OpenAI enterprise evals.
@@ -613,6 +613,83 @@ This IS the product. Without this, Loop is just another chatbot.
             filtering, dedup, format, multi-session, non-questions)
 
    EPIC 5 COMPLETE ✅
+```
+
+### EPIC 6 Stories
+
+| Story | Title | Status |
+|-------|-------|--------|
+| 6.1 | First-run onboarding | ✅ DONE |
+| 6.2 | Error handling audit | ✅ DONE |
+| 6.3 | `loop demo` command | ✅ DONE |
+| 6.4 | npm package + install | ✅ DONE |
+| 6.5 | README rewrite | ✅ DONE |
+| 6.6 | Real-world validation | BACKLOG |
+
+### What's Built (EPIC 6)
+
+```
+✅ Story 6.1 — First-run onboarding (Feb 11)
+   src/core/onboarding.ts — isFirstRun(), checkProvider(), runOnboarding(), runSilentOnboarding()
+   Detects first run (no ~/.loop/config.json)
+   Welcome banner + LLM provider check (via Pi AuthStorage + ModelRegistry)
+   Interactive persona selection (7 options, numbered list)
+   Saves config + creates ~/.loop/ directory
+   Non-interactive mode: creates defaults silently (pipes, CI)
+   CLI gate in src/index.ts: runs before commander, skips for --version/--help/config
+   --skip-onboarding flag for CI/scripts
+   Provider display: prefers sonnet-4-5 > sonnet-4 > gpt-4o as representative model
+   9 tests: first-run detection, provider check, silent onboarding, config persistence
+
+✅ Story 6.2 — Error handling audit (Feb 11)
+   src/index.ts — global uncaughtException + unhandledRejection handlers (exit code 2)
+   src/parsers/pdf.ts — Python ENOENT → "Python is required for PDF parsing" + install link
+   src/commands/query.ts — session creation + prompt() wrapped in try/catch
+   src/core/session.ts — fail-fast if no LLM provider (clear message, no Pi mention)
+   All error paths: no stack traces, helpful messages, proper exit codes (0/1/2)
+   10 tests: ingest errors (3), query errors (1), config errors (2), eval errors (1),
+             --version/--help (2), no stack traces audit (1)
+
+✅ Story 6.3 — loop demo command (Feb 11)
+   src/commands/demo.ts — guided walkthrough using FinanceBench Best Buy 10-K
+   Uses BESTBUY_2023_10K.pdf (75 pages, bundled in fixtures/)
+   2 real FinanceBench queries with expert-verified ground truth
+   Query 1: Cash flow → operating activities $1.8bn ✅
+   Query 2: Acquisitions → Current Health + Yardbird ✅
+   Shows expected answers for comparison
+   --quick flag: ingest only, skip LLM queries
+   Next steps: loop ingest, chat, eval workflow
+   Multi-doc: AMD 2022 10-K (121p) + Best Buy 2023 10-K (75p) = 196 pages
+   4 query types: extraction, numerical, cross-document comparison, risk analysis
+   Cross-doc comparison: revenue + operating margin across filings
+   Risk analysis: thematic similarities with verbatim citations from both
+   No downloads needed — 8 more PDFs auto-downloaded from FinanceBench GitHub
+   Interactive: menu of 5 suggested queries + free-form input + quit
+   Before/after context: teaches what each query type demonstrates
+   Tool progress: ▸ Reading INDEX.md, ▸ Searching for "segment"...
+   4 tests: quick ingest 10 docs, corpus check, suggested query, free-form query
+
+✅ Story 6.4 — npm package + install (Feb 11)
+   package.json: files field scoped (dist/, python/, fixtures/, README)
+   npm pack → 2.6 MB tarball (147 files)
+   npm install -g ./loop-ai-0.1.0.tgz → `loop` command available globally
+   loop --version → 0.1.0, loop --help → all 8 commands listed
+   src/postinstall.ts — checks Python + pymupdf4llm, warns if missing (never fails)
+   Shebang line in dist/index.js
+   Excludes: src/, tests/, node_modules/, .git/
+   7 tests: package.json fields, shebang, --version, --help, tarball size,
+            tarball contents, postinstall runs
+
+✅ Story 6.5 — README rewrite (Feb 11)
+   Hero: The Curve (accuracy bar chart over time)
+   Install: one command (npm install -g loop-ai)
+   Quick start: loop demo (interactive, 10 SEC filings)
+   All 8 commands documented with examples
+   Eval loop workflow: step-by-step with real commands
+   Persona table with 7 personas + usage examples
+   Architecture: one paragraph + ASCII diagram
+   Storage layout documented
+   Requirements section (Node 18+, Python optional for PDF)
 ```
 
 ### Blockers

@@ -51,9 +51,15 @@ export async function configSet(key: string, value: string): Promise<void> {
       break;
     }
     case "model": {
-      cfg.model = value;
-      saveConfig(cfg);
-      console.log(`Model set to: ${value}`);
+      if (value === "auto" || value === "default" || value === "") {
+        delete cfg.model;
+        saveConfig(cfg);
+        console.log(`Model set to: auto (provider default)`);
+      } else {
+        cfg.model = value;
+        saveConfig(cfg);
+        console.log(`Model set to: ${value}`);
+      }
       break;
     }
     case "api-key": {

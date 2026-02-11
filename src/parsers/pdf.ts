@@ -29,7 +29,16 @@ export async function parsePdf(
     ]);
   } catch (err: any) {
     const msg = err.stderr?.toString() || err.message;
+    const code = err.code;
 
+    // Python not installed
+    if (code === "ENOENT" || msg.includes("ENOENT")) {
+      throw new Error(
+        "Python is required for PDF parsing but was not found.\n" +
+        "Install Python 3.10+ from https://python.org\n" +
+        "Then run: pip install pymupdf4llm"
+      );
+    }
     if (msg.includes("No module named")) {
       throw new Error(
         "pymupdf4llm is not installed. Run: pip install pymupdf4llm"
