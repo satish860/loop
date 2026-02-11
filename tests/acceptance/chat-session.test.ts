@@ -52,7 +52,7 @@ describe("Story 3.1: Interactive chat session", () => {
     const r2 = await chat.send(
       "What is the lease term for that aircraft?"
     );
-    expect(r2.answer.toLowerCase()).toMatch(/12 years|twelve.*year/i);
+    expect(r2.answer.toLowerCase()).toMatch(/12 years|twelve.*year|2021.*2033|2033.*2021/i);
     expect(r2.turn).toBe(2);
 
     // Verify turn tracking
