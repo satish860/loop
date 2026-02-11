@@ -535,7 +535,7 @@ This IS the product. Without this, Loop is just another chatbot.
 | Story | Title | Status |
 |-------|-------|--------|
 | 5.1 | Eval runner | ✅ DONE |
-| 5.2 | Error analysis by dimension | BACKLOG |
+| 5.2 | Error analysis by dimension | ✅ DONE |
 | 5.3 | LLM judge with critiques | BACKLOG |
 | 5.4 | System prompt improvement | BACKLOG |
 | 5.5 | The curve (eval history) | BACKLOG |
@@ -557,6 +557,16 @@ This IS the product. Without this, Loop is just another chatbot.
    Supports --benchmark custom@v1 for versioned benchmarks
    9 tests: grader pass/fail/not_answerable, full eval run, JSONL persistence,
             loadEvalRun, listEvalRuns, --limit, loadLatestRun
+
+✅ Story 5.2 — Error Analysis by Dimension (Feb 11)
+   src/eval/analyzer.ts — slices eval results by dimension, finds worst
+   loop eval --analyze [runId] — CLI for error analysis
+   Groups by: questionType, difficulty, sourceFormat, edgeCase
+   Per-group: total, pass, fail, accuracy, failure examples
+   Bar chart visualization with ⚠️ warnings for <70% accuracy
+   Identifies worst dimension value (lowest accuracy) with failure details
+   Pure computation — no LLM calls needed
+   9 tests: 8 pure computation (slicing, worst, format, edge cases) + 1 real LLM
 ```
 
 ### Blockers

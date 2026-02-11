@@ -58,8 +58,9 @@ program
   .description("Run benchmark eval, grade answers, show accuracy")
   .option("-b, --benchmark <name>", "Benchmark to run (e.g., custom, custom@v1)")
   .option("-l, --limit <number>", "Max pairs to evaluate (cost control)")
-  .action(async (options: { benchmark?: string; limit?: string }) => {
-    await evalCommand({ benchmark: options.benchmark, limit: options.limit });
+  .option("-a, --analyze [runId]", "Show error analysis by dimension")
+  .action(async (options: { benchmark?: string; limit?: string; analyze?: boolean | string }) => {
+    await evalCommand({ benchmark: options.benchmark, limit: options.limit, analyze: options.analyze });
   });
 
 program

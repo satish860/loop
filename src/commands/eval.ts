@@ -7,7 +7,8 @@
  *   loop eval --benchmark custom --limit 5 Cost control
  */
 
-import { runEval, loadLatestRun, listEvalRuns, type EvalResultEntry } from "../eval/runner.js";
+import { runEval, loadLatestRun, loadEvalRun, listEvalRuns, type EvalResultEntry } from "../eval/runner.js";
+import { analyzeByDimension, formatAnalysis } from "../eval/analyzer.js";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -20,9 +21,16 @@ const RESET = "\x1b[0m";
 export interface EvalOptions {
   benchmark?: string;
   limit?: string;
+  analyze?: boolean | string; // true = latest run, string = specific run ID
 }
 
 export async function evalCommand(opts: EvalOptions): Promise<void> {
+  // --analyze: show error analysis
+  if (opts.analyze !== undefined && opts.analyze !== false) {
+    await showAnalysis(opts.analyze);
+    return;
+  }
+
   if (!opts.benchmark) {
     // No benchmark specified — show last run summary or help
     await showLastRun();
@@ -141,6 +149,38 @@ async function showLastRun(): Promise<void> {
     );
   }
 
+  console.log("");
+}
+
+// ── Analyze ──
+
+async function showAnalysis(runIdOrFlag: boolean | string): Promise<void> {
+  let run;
+
+  if (typeof runIdOrFlag === "string" && runIdOrFlag !== "true") {
+    // Specific run ID
+    run = loadEvalRun(runIdOrFlag);
+    if (!run) {
+      console.error(`Error: Eval run "${runIdOrFlag}" not found.`);
+      process.exit(1);
+    }
+  } else {
+    // Latest run
+    run = loadLatestRun();
+    if (!run) {
+      console.error("No eval runs found. Run `loop eval --benchmark custom` first.");
+      process.exit(1);
+    }
+  }
+
+  const accPct = (run.summary.accuracy * 100).toFixed(1);
+  console.log("");
+  console.log(`${BOLD}Error Analysis${RESET} — ${run.id}`);
+  console.log(`${DIM}${run.summary.total} pairs, ${accPct}% accuracy${RESET}`);
+  console.log("");
+
+  const analysis = analyzeByDimension(run);
+  console.log(formatAnalysis(analysis));
   console.log("");
 }
 
