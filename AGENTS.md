@@ -271,10 +271,16 @@ This IS the product. Without this, Loop is just another chatbot.
 |---|------|--------|---------|
 | 1 | Single PDF → Query → Answer | ✅ **DONE** | 9 stories |
 | 2 | Excel + CSV + Folder Ingest | ✅ **DONE** | 9 stories |
-| 3 | Feedback Loop | Backlog | 6 stories |
-| 4 | Demo + Benchmark | Backlog | 5 stories |
-| 5 | Eval Loop | Backlog | 7 stories |
+| 3 | Chat + Signal Capture | ✅ **DONE** | 6 stories |
+| 4 | Benchmark Builder (Generate QA + Validate) | **IN PROGRESS** | 5 stories |
+| 5 | Eval Loop (The Curve) | Backlog | 6 stories |
 | 6 | Ship | Backlog | 5 stories |
+
+> **Note:** EPICs 3-6 were rewritten on Feb 10 based on research into ACE paper (Stanford),
+> Hamel Husain's eval methodology, Glean AI Evaluator, and OpenAI enterprise evals.
+> See `project-docs/BACKLOG_V2_EPICS_3_6.md` for full stories.
+> Key changes: Chat replaces one-shot feedback. Generate-QA with dimensions replaces 
+> manual pass/fail. Eval runs offline. Persona support added.
 
 ### EPIC 1 Stories
 
@@ -394,6 +400,136 @@ This IS the product. Without this, Loop is just another chatbot.
    No hallucination. Lists what was searched.
 ```
 
+### EPIC 3 Stories
+
+| Story | Title | Status |
+|-------|-------|--------|
+| 3.1 | Interactive chat session | ✅ DONE |
+| 3.2 | Chat session logging | ✅ DONE |
+| 3.3 | Implicit signal detection | ✅ DONE |
+| 3.4 | Persona support | ✅ DONE |
+| 3.5 | `loop status` command | ✅ DONE |
+| 3.6 | Keep `loop query` for scripting | ✅ DONE |
+
+### What's Built (EPIC 3)
+
+```
+✅ Story 3.1 — Interactive chat session (Feb 10)
+   src/core/chat-session.ts — ChatSession class
+   src/commands/chat.ts — loop chat CLI with readline
+   Multi-turn context, /quit, /new, turn numbers
+
+✅ Story 3.2 — Chat session logging (Feb 10)
+   src/core/session-logger.ts — JSONL incremental logging
+   Session start/end metadata, turn logging, crash-safe writes
+   Logs to ~/.loop/chat-logs/{timestamp}_{sessionId}.jsonl
+
+✅ Story 3.3 — Implicit signal detection (Feb 10)
+   src/core/signal-detector.ts — pattern-based signal analysis
+   Detects: correction, reformulation, satisfaction, follow_up_depth
+   Signals logged to session JSONL as {type: "signal"} entries
+   analyzeSession(id) public API for post-session analysis
+   Runs automatically on session.end() — non-blocking
+   13 tests: 10 pattern tests + 3 real LLM integration tests
+
+✅ Story 3.4 — Persona support (Feb 10)
+   src/core/config.ts — config manager (read/write ~/.loop/config.json)
+   7 personas: general, portfolio_manager, legal, finance, technical, executive, junior
+   Persona prompt injected into system prompt via buildSystemPrompt()
+   loop config set persona <type> — persists to config.json
+   loop config show — displays current settings
+   ChatSession resolves persona: CLI override > config > "general"
+   loop chat shows persona on start, loop query --persona <type> for overrides
+   14 tests: 11 config tests + 3 real LLM tests (finance/legal/executive styles)
+
+✅ Story 3.5 — loop status command (Feb 10)
+   src/commands/status.ts — rewritten with corpus, persona, chat, signal stats
+   Shows: doc count by format, current persona, session/turn counts, signal counts
+   Scans ~/.loop/chat-logs/ JSONL files for session/signal stats
+   Works with empty corpus (shows help message)
+   6 tests: empty state, corpus stats, persona display, no sessions, session+signals, empty corpus
+
+✅ Story 3.6 — Keep loop query for scripting (Feb 10)
+   src/commands/query.ts — added --json flag, clean exit codes
+   --json outputs {"query": "...", "answer": "..."} to stdout (no streaming, no progress)
+   --persona works for per-query override
+   Exit code 0 on success, 1 on error
+   Pipe-safe: progress to stderr, answer to stdout
+   6 tests: stdout output, --json valid, --json pipe-clean, error exit code, no noise, --persona
+```
+
+### EPIC 4 Stories
+
+| Story | Title | Status |
+|-------|-------|--------|
+| 4.1 | Document type classification | ✅ DONE |
+| 4.2 | Generate QA pairs with dimensions | ✅ DONE |
+| 4.3 | Human review flow | ✅ DONE |
+| 4.4 | FinanceBench integration | Deferred to EPIC 6 |
+| 4.5 | Benchmark versioning | ✅ DONE |
+
+### What's Built (EPIC 4)
+
+```
+✅ Story 4.1 — Document type classification (Feb 10)
+   src/core/classifier.ts — classifyDocument() using Pi session
+   8 predefined types: lease, amendment, purchase, insurance, maintenance, fleet_data, utilization_data, other
+   Pi SDK session with classification-specific prompt, no tools needed
+   Classification stored in meta.json, shown in INDEX.md as [type] tags
+   corpus.setDocType() for updating types after ingest
+   Best-effort: empty/unclassifiable text returns "other", errors don't block ingest
+   Ingest CLI updated: single-file and folder ingest both classify
+   8 tests: 4 fixture classifications (lease, amendment, fleet_data, utilization_data),
+            corpus metadata storage, INDEX.md tag, valid type check, empty text fallback
+
+✅ Story 4.2 — Generate QA pairs with dimensions (Feb 10)
+   src/core/qa-generator.ts — Pi-powered QA generation with read-only tools
+   src/commands/generate-qa.ts — loop generate-qa CLI with progress + coverage display
+   Pi session explores corpus: reads INDEX.md, samples each document, greps for key terms
+   Generates QA pairs tagged with dimensions: questionType, difficulty, sourceFormat, edgeCase
+   Distribution plan: weights by document size, reserves 15% cross-doc + 15% not_answerable
+   Targeted follow-ups ensure cross-document and not_answerable pairs are always included
+   Priority-based selection: cross-doc and edge case pairs kept over regular pairs when trimming
+   Robust JSON parsing: handles raw arrays, code blocks, mixed text
+   Saves to ~/.loop/benchmarks/custom/qa-pairs-draft.jsonl (one pair per line)
+   Coverage summary: bar chart by question type, difficulty, source format, edge cases
+   Tested on real aircraft docs: 14 documents, 15 QA pairs with 5 question types, 3 cross-doc, 3 not_answerable
+   10 tests: 5 real LLM tests (generation, cross-doc, not_answerable, coverage, JSONL format)
+             + 5 parsing/coverage tests (no LLM)
+
+✅ Story 4.3 — Human review flow (Feb 10)
+   src/core/qa-review.ts — CSV export/import with papaparse
+   src/commands/generate-qa.ts — added --export csv and --import <file> flags
+   Export: reads qa-pairs-draft.jsonl → writes qa-pairs-review.csv (properly quoted)
+   Import: reads reviewed CSV → filters keep/edit, discards → saves qa-pairs.jsonl (benchmark)
+   Handles: long text with commas/quotes, empty fields, not_answerable edge case
+   Validation: rejects empty questions, allows empty answer for not_answerable
+   Re-numbers IDs sequentially after discards
+   CLI shows helpful next-step instructions after export and import
+   11 tests: export columns, long text quoting, custom path, no-draft error,
+             keep-all, discard filtering, edit detection, empty question rejection,
+             not_answerable handling, missing file error, full roundtrip
+
+✅ Story 4.5 — Benchmark versioning (Feb 10)
+   src/core/benchmark-version.ts — version management for benchmarks
+   saveBenchmarkVersion() — saves qa-pairs-v{N}.jsonl + updates qa-pairs.jsonl (latest)
+   loadVersionedBenchmark() — loads latest or specific version (e.g., "v1")
+   listBenchmarkVersions() — lists all versions with metadata
+   versions.json manifest: version, timestamp, pairCount, corpusDocCount, systemPromptHash
+   Import flow now auto-creates versions: "Imported 5 QA pairs → benchmark v1"
+   CLI shows: loop eval --benchmark custom@v1 for specific version
+   Previous versions never overwritten — full history preserved
+   11 tests: v1 creation, v2 preserves v1, load latest, load specific,
+             list all, latest tracking, qa-pairs.jsonl sync, manifest,
+             nonexistent version, corpus doc count, optional description
+
+   Story 4.4 (FinanceBench) — Deferred to EPIC 6
+   Reason: Custom benchmark on real DeltaXY docs is the priority for March 14.
+   FinanceBench (336 PDF download) is a nice-to-have, not a blocker for the eval loop.
+
+   EPIC 4 COMPLETE (4/5 stories done, 1 deferred) ✅
+```
+
 ### Blockers
 
 - None currently
@@ -438,10 +574,10 @@ This IS the product. Without this, Loop is just another chatbot.
 ## Week Plan
 
 ```
-Week 1 (Feb 14-21):  EPIC 1 + EPIC 2
-Week 2 (Feb 21-28):  EPIC 3 + EPIC 4
-Week 3 (Mar 1-7):    EPIC 5
-Week 4 (Mar 8-14):   EPIC 6 → Ship
+Week 1 (Feb 10-14):  EPIC 1 + EPIC 2                     ✅ DONE
+Week 2 (Feb 14-21):  EPIC 3 (Chat + Signals)
+Week 3 (Feb 21-28):  EPIC 4 + EPIC 5 (Benchmark + Eval)
+Week 4 (Mar 1-14):   EPIC 6 (Ship)
 ```
 
 ---

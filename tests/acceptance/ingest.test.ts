@@ -22,7 +22,7 @@ describe("Story 1.6: loop ingest CLI", () => {
   it("ingests a PDF and shows progress", () => {
     const out = execSync(`npx tsx src/index.ts ingest ${PDF}`, opts);
     expect(out).toContain("Parsing:");
-    expect(out).toContain("Pages: 75");
+    expect(out).toContain("75 pages");
     expect(out).toContain("Stored: BESTBUY_2023_10K.txt");
     expect(out).toContain("Corpus: 1 document");
   });

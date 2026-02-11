@@ -1,12 +1,14 @@
 import { existsSync, mkdirSync, readdirSync, copyFileSync, writeFileSync, readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import type { ParseResult } from "../parsers/types.js";
+import type { DocType } from "./classifier.js";
 
 export interface DocumentMeta {
   filename: string;   // e.g., "BESTBUY_2023_10K.txt"
   source: string;     // e.g., "BESTBUY_2023_10K.pdf"
   format: string;     // "pdf" | "excel" | "csv"
   summary: string;    // first meaningful lines of content
+  docType?: DocType;  // classified document type (lease, amendment, fleet_data, etc.)
   pages?: number;
   sheets?: number;
   rows?: number;
@@ -27,7 +29,7 @@ export class CorpusManager {
   }
 
   /** Add a parsed document to the corpus */
-  addDocument(result: ParseResult): DocumentMeta {
+  addDocument(result: ParseResult, docType?: DocType): DocumentMeta {
     this.ensureDir();
 
     // Target filename: swap extension to .txt
@@ -43,6 +45,7 @@ export class CorpusManager {
       source: result.source,
       format: result.format,
       summary,
+      docType,
       pages: result.pages,
       sheets: result.sheets,
       rows: result.rows,
@@ -50,7 +53,7 @@ export class CorpusManager {
 
     // Store source mapping and metadata
     this.saveSourceMap(txtName, result.source);
-    this.saveMetaMap(txtName, result);
+    this.saveMetaMap(txtName, result, docType);
     this.updateIndex();
     return meta;
   }
@@ -100,6 +103,7 @@ export class CorpusManager {
           source: original,
           format: format as "pdf" | "excel" | "csv",
           summary,
+          docType: meta.docType,
           pages: meta.pages,
           sheets: meta.sheets,
           rows: meta.rows,
@@ -123,8 +127,8 @@ export class CorpusManager {
     writeFileSync(join(this.dir, "sources.json"), JSON.stringify(map, null, 2), "utf-8");
   }
 
-  /** Load metadata map: txt filename → {pages, sheets, rows} */
-  private loadMetaMap(): Record<string, { pages?: number; sheets?: number; rows?: number }> {
+  /** Load metadata map: txt filename → {pages, sheets, rows, docType} */
+  private loadMetaMap(): Record<string, { pages?: number; sheets?: number; rows?: number; docType?: DocType }> {
     const mapPath = join(this.dir, "meta.json");
     if (existsSync(mapPath)) {
       return JSON.parse(readFileSync(mapPath, "utf-8"));
@@ -133,10 +137,22 @@ export class CorpusManager {
   }
 
   /** Save metadata for a document */
-  private saveMetaMap(txtName: string, result: ParseResult): void {
+  private saveMetaMap(txtName: string, result: ParseResult, docType?: DocType): void {
     const map = this.loadMetaMap();
-    map[txtName] = { pages: result.pages, sheets: result.sheets, rows: result.rows };
+    map[txtName] = { pages: result.pages, sheets: result.sheets, rows: result.rows, docType };
     writeFileSync(join(this.dir, "meta.json"), JSON.stringify(map, null, 2), "utf-8");
+  }
+
+  /** Update the docType for an already-ingested document */
+  setDocType(txtName: string, docType: DocType): void {
+    const map = this.loadMetaMap();
+    if (map[txtName]) {
+      map[txtName].docType = docType;
+    } else {
+      map[txtName] = { docType };
+    }
+    writeFileSync(join(this.dir, "meta.json"), JSON.stringify(map, null, 2), "utf-8");
+    this.updateIndex();
   }
 
   /** Regenerate INDEX.md — Pi reads this first to decide which documents to open */
@@ -156,8 +172,9 @@ export class CorpusManager {
       else if ((ext === "xlsx" || ext === "xls") && meta.sheets) sizeInfo = `Excel, ${meta.sheets} sheets, ${meta.rows ?? "?"} rows`;
       else if (ext === "csv" && meta.rows) sizeInfo = `CSV, ${meta.rows} rows`;
 
+      const typeTag = meta.docType ? ` [${meta.docType}]` : "";
       const summary = this.extractSummary(join(this.dir, f), ext === "csv" ? "csv" : ext === "pdf" ? "pdf" : "excel");
-      return `- ${f} (${sizeInfo}, original: ${original}): ${summary}`;
+      return `- ${f}${typeTag} (${sizeInfo}, original: ${original}): ${summary}`;
     });
 
     const lines = [

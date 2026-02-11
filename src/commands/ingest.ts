@@ -5,7 +5,11 @@ import { parsePdf } from "../parsers/pdf.js";
 import { parseExcel } from "../parsers/excel.js";
 import { parseCsv } from "../parsers/csv.js";
 import { CorpusManager } from "../core/corpus.js";
+import { classifyDocument, docTypeDisplayName, type DocType } from "../core/classifier.js";
 import type { ParseResult } from "../parsers/types.js";
+
+const DIM = "\x1b[2m";
+const RESET = "\x1b[0m";
 
 const SUPPORTED = new Set([".pdf", ".xlsx", ".xls", ".csv"]);
 
@@ -88,10 +92,10 @@ export async function ingest(source: string): Promise<void> {
 
       try {
         const result = await parseFile(file);
-        const ext = extname(file).toLowerCase();
-        const typeLabel = ext === ".pdf" ? "PDF" : ext === ".csv" ? "CSV" : "Excel";
-        corpus.addDocument(result);
-        console.log(`  ✅ ${name.padEnd(30)} ${formatResult(result).padEnd(15)} ${typeLabel}`);
+        // Classify document type (best-effort)
+        const docType = await classifyDocument(result.outputPath);
+        corpus.addDocument(result, docType);
+        console.log(`  ✅ ${name.padEnd(30)} ${formatResult(result).padEnd(15)} ${docTypeDisplayName(docType)}`);
         ingested++;
       } catch (err: any) {
         console.error(`  ❌ ${name} — ${err.message}`);
@@ -123,7 +127,11 @@ export async function ingest(source: string): Promise<void> {
   const result = await parseFile(filepath);
   console.log(formatResult(result));
 
-  const meta = corpus.addDocument(result);
+  // Classify document type (best-effort, non-blocking on failure)
+  console.log(`${DIM}Classifying document type...${RESET}`);
+  const docType = await classifyDocument(result.outputPath);
+
+  const meta = corpus.addDocument(result, docType);
   const docs = corpus.listDocuments();
-  console.log(`Stored: ${meta.filename} (${formatResult(result)}). Corpus: ${docs.length} document${docs.length !== 1 ? "s" : ""}`);
+  console.log(`Stored: ${meta.filename} (${formatResult(result)}, ${docTypeDisplayName(docType)}). Corpus: ${docs.length} document${docs.length !== 1 ? "s" : ""}`);
 }
