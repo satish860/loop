@@ -122,7 +122,7 @@ export async function runEval(
   };
 
   // Ensure runs dir exists
-  if (!existsSync(RUNS_DIR)) mkdirSync(RUNS_DIR, { recursive: true });
+  mkdirSync(RUNS_DIR, { recursive: true });
 
   // Write meta line first (so partial runs are readable)
   const runPath = join(RUNS_DIR, `${runId}.jsonl`);

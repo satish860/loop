@@ -15,6 +15,7 @@ import {
   ModelRegistry,
 } from "@mariozechner/pi-coding-agent";
 import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
 const SESSION_DIR = join(HOME, ".loop", "sessions", "grader");
@@ -67,7 +68,17 @@ export async function gradeAnswer(
   });
   await loader.reload();
 
+  mkdirSync(SESSION_DIR, { recursive: true });
   const sessionManager = SessionManager.create(process.cwd(), SESSION_DIR);
+
+  // Resolve configured model
+  const { loadConfig } = await import("../core/config.js");
+  let model: any;
+  const configuredModel = loadConfig().model;
+  if (configuredModel) {
+    const si = configuredModel.indexOf("/");
+    if (si > 0) model = modelRegistry.find(configuredModel.substring(0, si), configuredModel.substring(si + 1));
+  }
 
   const { session } = await createAgentSession({
     cwd: process.cwd(),
@@ -77,6 +88,7 @@ export async function gradeAnswer(
     settingsManager,
     authStorage,
     modelRegistry,
+    ...(model ? { model } : {}),
   });
 
   let response = "";

@@ -231,7 +231,13 @@ async function llmCall(systemPrompt: string, userPrompt: string): Promise<string
   });
   await loader.reload();
 
+  mkdirSync(SESSION_DIR, { recursive: true });
   const sessionManager = SessionManager.create(process.cwd(), SESSION_DIR);
+
+  const { loadConfig } = await import("../core/config.js");
+  let model: any;
+  const cm = loadConfig().model;
+  if (cm) { const si = cm.indexOf("/"); if (si > 0) model = modelRegistry.find(cm.substring(0, si), cm.substring(si + 1)); }
 
   const { session } = await createAgentSession({
     cwd: process.cwd(),
@@ -241,6 +247,7 @@ async function llmCall(systemPrompt: string, userPrompt: string): Promise<string
     settingsManager,
     authStorage,
     modelRegistry,
+    ...(model ? { model } : {}),
   });
 
   let response = "";

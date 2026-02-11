@@ -343,7 +343,13 @@ async function queryWithPrompt(
   });
   await loader.reload();
 
+  mkdirSync(SESSION_DIR, { recursive: true });
   const sessionManager = SessionManager.create(corpusDir, SESSION_DIR);
+
+  const { loadConfig } = await import("../core/config.js");
+  let model: any;
+  const cm = loadConfig().model;
+  if (cm) { const si = cm.indexOf("/"); if (si > 0) model = modelRegistry.find(cm.substring(0, si), cm.substring(si + 1)); }
 
   const { session } = await createAgentSession({
     cwd: corpusDir,
@@ -353,6 +359,7 @@ async function queryWithPrompt(
     settingsManager,
     authStorage,
     modelRegistry,
+    ...(model ? { model } : {}),
   });
 
   let response = "";
@@ -391,7 +398,13 @@ async function llmCall(systemPrompt: string, userPrompt: string): Promise<string
   });
   await loader.reload();
 
+  mkdirSync(SESSION_DIR, { recursive: true });
   const sessionManager = SessionManager.create(process.cwd(), SESSION_DIR);
+
+  const { loadConfig: lc } = await import("../core/config.js");
+  let model2: any;
+  const cm2 = lc().model;
+  if (cm2) { const si = cm2.indexOf("/"); if (si > 0) model2 = modelRegistry.find(cm2.substring(0, si), cm2.substring(si + 1)); }
 
   const { session } = await createAgentSession({
     cwd: process.cwd(),
@@ -401,6 +414,7 @@ async function llmCall(systemPrompt: string, userPrompt: string): Promise<string
     settingsManager,
     authStorage,
     modelRegistry,
+    ...(model2 ? { model: model2 } : {}),
   });
 
   let response = "";
