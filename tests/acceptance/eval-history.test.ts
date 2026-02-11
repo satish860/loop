@@ -209,7 +209,6 @@ describe("Story 5.5: Real eval runs → history", () => {
 
     // Two runs
     await runEval("custom", { limit: 2 });
-    await new Promise((r) => setTimeout(r, 200));
     await runEval("custom", { limit: 2 });
 
     const history = loadHistory();

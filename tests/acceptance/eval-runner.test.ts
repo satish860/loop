@@ -224,8 +224,6 @@ describe("Story 5.1: Eval Runner", () => {
     saveBenchmarkVersion(pairs, "list test");
 
     await runEval("custom", { limit: 1 });
-    // Small delay to ensure different timestamps
-    await new Promise((r) => setTimeout(r, 100));
     await runEval("custom", { limit: 1 });
 
     const runs = listEvalRuns();
@@ -249,7 +247,6 @@ describe("Story 5.1: Eval Runner", () => {
     saveBenchmarkVersion(pairs, "latest test");
 
     await runEval("custom", { limit: 1 });
-    await new Promise((r) => setTimeout(r, 100));
     const run2 = await runEval("custom", { limit: 1 });
 
     const latest = loadLatestRun("custom");
