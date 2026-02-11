@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import {
   createAgentSession,
   DefaultResourceLoader,
@@ -35,11 +36,23 @@ CITATION FORMAT (mandatory, always at the end):
 **Source: [ORIGINAL_FILENAME, Page N]**
 Use the ORIGINAL filename from INDEX.md (e.g., BESTBUY_2023_10K.pdf), NOT the .txt filename.`;
 
-/** Build system prompt with optional persona addition */
+const SYSTEM_PROMPT_PATH = join(HOME, ".loop", "system.md");
+
+/** Build system prompt: custom file if exists, otherwise hardcoded default + persona */
 export function buildSystemPrompt(persona?: Persona): string {
-  if (!persona || persona === "general") return BASE_SYSTEM_PROMPT;
+  // If user has a custom system prompt (from eval --improve --apply), use it
+  const base = existsSync(SYSTEM_PROMPT_PATH)
+    ? readFileSync(SYSTEM_PROMPT_PATH, "utf-8")
+    : BASE_SYSTEM_PROMPT;
+
+  if (!persona || persona === "general") return base;
   const addition = PERSONA_PROMPTS[persona];
-  return addition ? `${BASE_SYSTEM_PROMPT}\n${addition}` : BASE_SYSTEM_PROMPT;
+  return addition ? `${base}\n${addition}` : base;
+}
+
+/** Get the hardcoded default system prompt (ignoring any custom file) */
+export function getDefaultSystemPrompt(): string {
+  return BASE_SYSTEM_PROMPT;
 }
 
 export interface SessionOptions {

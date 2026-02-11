@@ -537,7 +537,7 @@ This IS the product. Without this, Loop is just another chatbot.
 | 5.1 | Eval runner | ✅ DONE |
 | 5.2 | Error analysis by dimension | ✅ DONE |
 | 5.3 | LLM judge with critiques | ✅ DONE |
-| 5.4 | System prompt improvement | BACKLOG |
+| 5.4 | System prompt improvement | ✅ DONE |
 | 5.5 | The curve (eval history) | BACKLOG |
 | 5.6 | Mine chat logs for QA pairs | BACKLOG |
 
@@ -579,6 +579,19 @@ This IS the product. Without this, Loop is just another chatbot.
    Requires both pass AND fail examples, minimum configurable
    9 tests: 3 validation (rejects), 4 LLM (create, criteria, load, verdicts),
             1 real end-to-end (eval → judge → agreement), 1 prompt content
+
+✅ Story 5.4 — System Prompt Improvement (Feb 11)
+   src/eval/improver.ts — ACE-inspired Reflector → Curator → Tester pipeline
+   suggestImprovement() — analyzes worst dimension, proposes delta addition
+   Reflector: LLM studies failure root causes (3-5 bullet points)
+   Curator: LLM proposes short addition to system prompt (not full rewrite)
+   Tester: re-runs failed queries with new prompt, checks regressions on passes
+   applyImprovement() — saves to ~/.loop/system.md + logs to improvements.jsonl
+   buildSystemPrompt() now reads ~/.loop/system.md if exists (falls back to default)
+   getDefaultSystemPrompt() always returns hardcoded default
+   loop eval --improve [runId] CLI with full Reflector/Curator/Tester output
+   6 tests: no-failures rejection, apply+save, custom file read, default fallback,
+            empty history, real eval→improve with delta/before-after/regression check
 ```
 
 ### Blockers

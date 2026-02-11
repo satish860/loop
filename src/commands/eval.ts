@@ -7,9 +7,12 @@
  *   loop eval --benchmark custom --limit 5 Cost control
  */
 
+import { existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { runEval, loadLatestRun, loadEvalRun, listEvalRuns, type EvalResultEntry } from "../eval/runner.js";
 import { analyzeByDimension, formatAnalysis } from "../eval/analyzer.js";
 import { createJudge, loadJudgePrompt } from "../eval/judge.js";
+import { suggestImprovement, applyImprovement } from "../eval/improver.js";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -24,6 +27,7 @@ export interface EvalOptions {
   limit?: string;
   analyze?: boolean | string;
   judgeCreate?: boolean | string;
+  improve?: boolean | string;
 }
 
 export async function evalCommand(opts: EvalOptions): Promise<void> {
@@ -36,6 +40,12 @@ export async function evalCommand(opts: EvalOptions): Promise<void> {
   // --judge-create: build judge from eval run
   if (opts.judgeCreate !== undefined && opts.judgeCreate !== false) {
     await buildJudge(opts.judgeCreate);
+    return;
+  }
+
+  // --improve: suggest and test system prompt improvement
+  if (opts.improve !== undefined && opts.improve !== false) {
+    await runImprove(opts.improve);
     return;
   }
 
@@ -255,6 +265,122 @@ async function buildJudge(runIdOrFlag: boolean | string): Promise<void> {
     }
 
     console.log("");
+
+  } catch (err) {
+    console.error(`\nError: ${(err as Error).message}`);
+    process.exit(1);
+  }
+}
+
+// ── Improve ──
+
+async function runImprove(runIdOrFlag: boolean | string): Promise<void> {
+  let run;
+
+  if (typeof runIdOrFlag === "string" && runIdOrFlag !== "true") {
+    run = loadEvalRun(runIdOrFlag);
+    if (!run) {
+      console.error(`Error: Eval run "${runIdOrFlag}" not found.`);
+      process.exit(1);
+    }
+  } else {
+    run = loadLatestRun();
+    if (!run) {
+      console.error("No eval runs found. Run `loop eval --benchmark custom` first.");
+      process.exit(1);
+    }
+  }
+
+  const failures = run.results.filter((r) => !r.pass);
+  if (failures.length === 0) {
+    console.log(`\n  ${GREEN}All pairs passed!${RESET} Nothing to improve.\n`);
+    return;
+  }
+
+  console.log("");
+  console.log(`${BOLD}System Prompt Improvement${RESET} — ${run.id}`);
+  console.log(`${DIM}${run.summary.total} pairs, ${failures.length} failures${RESET}`);
+  console.log("");
+
+  try {
+    const improvement = await suggestImprovement(run, (step) => {
+      console.log(`  ${DIM}${CYAN}▸${RESET}${DIM} ${step}${RESET}`);
+    });
+
+    // Show reflections
+    console.log("");
+    console.log(`  ${BOLD}─── REFLECTOR ───${RESET}`);
+    for (const line of improvement.reflections.split("\n")) {
+      if (line.trim()) console.log(`  ${DIM}${line}${RESET}`);
+    }
+
+    // Show proposed delta
+    console.log("");
+    console.log(`  ${BOLD}─── CURATOR ───${RESET}`);
+    console.log(`  ${BOLD}Proposed addition to system prompt:${RESET}`);
+    console.log("");
+    for (const line of improvement.proposedDelta.split("\n")) {
+      console.log(`  ${GREEN}+ ${line}${RESET}`);
+    }
+
+    // Show test results on failures
+    console.log("");
+    console.log(`  ${BOLD}─── TESTER ───${RESET}`);
+    console.log(`  ${BOLD}Failed queries (before → after):${RESET}`);
+    for (const r of improvement.failTestResults) {
+      const before = "❌";
+      const after = r.pass ? `${GREEN}✅${RESET}` : `${RED}❌${RESET}`;
+      console.log(`    ${before}→${after} "${truncate(r.question, 50)}"`);
+    }
+
+    // Show regression check
+    if (improvement.passTestResults.length > 0) {
+      console.log("");
+      console.log(`  ${BOLD}Regression check (${improvement.passTestResults.length} passing queries):${RESET}`);
+      for (const r of improvement.passTestResults) {
+        const icon = r.pass ? `${GREEN}✅${RESET}` : `${RED}⚠️  REGRESSION${RESET}`;
+        console.log(`    ${icon} "${truncate(r.question, 50)}"`);
+      }
+    }
+
+    // Summary
+    const beforePct = (improvement.beforeAccuracy * 100).toFixed(0);
+    const afterPct = (improvement.afterAccuracy * 100).toFixed(0);
+    const delta = improvement.afterAccuracy - improvement.beforeAccuracy;
+    const deltaPct = (delta * 100).toFixed(0);
+    const deltaColor = delta > 0 ? GREEN : delta < 0 ? RED : YELLOW;
+
+    console.log("");
+    console.log(`  ${"─".repeat(50)}`);
+    console.log(`  ${BOLD}Target:${RESET}      ${improvement.targetValue} (${improvement.targetDimension})`);
+    console.log(`  ${BOLD}Before:${RESET}      ${beforePct}% on failed queries`);
+    console.log(`  ${BOLD}After:${RESET}       ${deltaColor}${afterPct}%${RESET} (${delta >= 0 ? "+" : ""}${deltaPct} points)`);
+    console.log(`  ${BOLD}Regressions:${RESET} ${improvement.regressions.length === 0 ? `${GREEN}none${RESET}` : `${RED}${improvement.regressions.length}${RESET}`}`);
+    console.log(`  ${"─".repeat(50)}`);
+    console.log("");
+
+    // Apply prompt
+    console.log(`  To apply: ${CYAN}loop eval --improve --apply${RESET}`);
+    console.log(`  Or manually edit: ${DIM}~/.loop/system.md${RESET}`);
+    console.log("");
+
+    // Store the pending improvement so --apply can pick it up
+    const HOME = process.env.HOME ?? process.env.USERPROFILE ?? "~";
+    const pendingPath = join(HOME, ".loop", "eval", "pending-improvement.json");
+    if (!existsSync(join(HOME, ".loop", "eval"))) {
+      mkdirSync(join(HOME, ".loop", "eval"), { recursive: true });
+    }
+    writeFileSync(pendingPath, JSON.stringify({
+      runId: run.id,
+      improvement: {
+        targetDimension: improvement.targetDimension,
+        targetValue: improvement.targetValue,
+        proposedDelta: improvement.proposedDelta,
+        beforeAccuracy: improvement.beforeAccuracy,
+        afterAccuracy: improvement.afterAccuracy,
+        regressions: improvement.regressions,
+      },
+    }, null, 2), "utf-8");
 
   } catch (err) {
     console.error(`\nError: ${(err as Error).message}`);

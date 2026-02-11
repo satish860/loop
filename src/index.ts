@@ -60,8 +60,9 @@ program
   .option("-l, --limit <number>", "Max pairs to evaluate (cost control)")
   .option("-a, --analyze [runId]", "Show error analysis by dimension")
   .option("--judge-create [runId]", "Build LLM judge from eval results")
-  .action(async (options: { benchmark?: string; limit?: string; analyze?: boolean | string; judgeCreate?: boolean | string }) => {
-    await evalCommand({ benchmark: options.benchmark, limit: options.limit, analyze: options.analyze, judgeCreate: options.judgeCreate });
+  .option("--improve [runId]", "Suggest system prompt improvement from failures")
+  .action(async (options: { benchmark?: string; limit?: string; analyze?: boolean | string; judgeCreate?: boolean | string; improve?: boolean | string }) => {
+    await evalCommand({ benchmark: options.benchmark, limit: options.limit, analyze: options.analyze, judgeCreate: options.judgeCreate, improve: options.improve });
   });
 
 program
