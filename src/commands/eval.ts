@@ -9,6 +9,7 @@
 
 import { runEval, loadLatestRun, loadEvalRun, listEvalRuns, type EvalResultEntry } from "../eval/runner.js";
 import { analyzeByDimension, formatAnalysis } from "../eval/analyzer.js";
+import { createJudge, loadJudgePrompt } from "../eval/judge.js";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -21,13 +22,20 @@ const RESET = "\x1b[0m";
 export interface EvalOptions {
   benchmark?: string;
   limit?: string;
-  analyze?: boolean | string; // true = latest run, string = specific run ID
+  analyze?: boolean | string;
+  judgeCreate?: boolean | string;
 }
 
 export async function evalCommand(opts: EvalOptions): Promise<void> {
   // --analyze: show error analysis
   if (opts.analyze !== undefined && opts.analyze !== false) {
     await showAnalysis(opts.analyze);
+    return;
+  }
+
+  // --judge-create: build judge from eval run
+  if (opts.judgeCreate !== undefined && opts.judgeCreate !== false) {
+    await buildJudge(opts.judgeCreate);
     return;
   }
 
@@ -182,6 +190,76 @@ async function showAnalysis(runIdOrFlag: boolean | string): Promise<void> {
   const analysis = analyzeByDimension(run);
   console.log(formatAnalysis(analysis));
   console.log("");
+}
+
+// ── Judge ──
+
+async function buildJudge(runIdOrFlag: boolean | string): Promise<void> {
+  let run;
+
+  if (typeof runIdOrFlag === "string" && runIdOrFlag !== "true") {
+    run = loadEvalRun(runIdOrFlag);
+    if (!run) {
+      console.error(`Error: Eval run "${runIdOrFlag}" not found.`);
+      process.exit(1);
+    }
+  } else {
+    run = loadLatestRun();
+    if (!run) {
+      console.error("No eval runs found. Run `loop eval --benchmark custom` first.");
+      process.exit(1);
+    }
+  }
+
+  console.log("");
+  console.log(`${BOLD}Building LLM Judge${RESET} from ${run.id}`);
+  console.log(`${DIM}${run.results.length} graded examples (${run.summary.pass} pass, ${run.summary.fail} fail)${RESET}`);
+  console.log("");
+
+  try {
+    console.log(`${DIM}  Generating judge prompt from training examples...${RESET}`);
+    const result = await createJudge(run);
+
+    console.log(`${DIM}  Testing judge on ${result.testCount} held-out examples...${RESET}`);
+    console.log("");
+
+    // Show test results
+    for (const detail of result.testDetails) {
+      const agreeIcon = detail.agree ? `${GREEN}✓${RESET}` : `${RED}✗${RESET}`;
+      const humanIcon = detail.humanLabel ? "✅" : "❌";
+      const judgeIcon = detail.judgeLabel ? "✅" : "❌";
+      console.log(
+        `  ${agreeIcon} "${truncate(detail.question, 45)}"  human:${humanIcon} judge:${judgeIcon}`,
+      );
+      if (!detail.agree) {
+        console.log(`    ${DIM}Judge reason: ${detail.judgeReason}${RESET}`);
+      }
+    }
+
+    console.log("");
+    console.log(`  ${"─".repeat(50)}`);
+
+    const agreePct = (result.agreement * 100).toFixed(0);
+    const agreeColor = result.agreement >= 0.8 ? GREEN : result.agreement >= 0.6 ? YELLOW : RED;
+
+    console.log(`  ${BOLD}Agreement:${RESET} ${agreeColor}${agreePct}%${RESET} (${result.testDetails.filter((d) => d.agree).length}/${result.testCount})`);
+    console.log(`  ${BOLD}Train/Test:${RESET} ${result.trainCount}/${result.testCount}`);
+    console.log(`  ${BOLD}Saved:${RESET} ${result.judgePath}`);
+    console.log(`  ${"─".repeat(50)}`);
+
+    if (result.agreement < 0.8) {
+      console.log("");
+      console.log(`  ${YELLOW}Agreement below 80%. Consider:${RESET}`);
+      console.log(`  ${DIM}  - Run a larger eval (more examples = better judge)${RESET}`);
+      console.log(`  ${DIM}  - Edit the judge prompt at: ${result.judgePath}${RESET}`);
+    }
+
+    console.log("");
+
+  } catch (err) {
+    console.error(`\nError: ${(err as Error).message}`);
+    process.exit(1);
+  }
 }
 
 // ── Helpers ──

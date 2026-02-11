@@ -536,7 +536,7 @@ This IS the product. Without this, Loop is just another chatbot.
 |-------|-------|--------|
 | 5.1 | Eval runner | ✅ DONE |
 | 5.2 | Error analysis by dimension | ✅ DONE |
-| 5.3 | LLM judge with critiques | BACKLOG |
+| 5.3 | LLM judge with critiques | ✅ DONE |
 | 5.4 | System prompt improvement | BACKLOG |
 | 5.5 | The curve (eval history) | BACKLOG |
 | 5.6 | Mine chat logs for QA pairs | BACKLOG |
@@ -567,6 +567,18 @@ This IS the product. Without this, Loop is just another chatbot.
    Identifies worst dimension value (lowest accuracy) with failure details
    Pure computation — no LLM calls needed
    9 tests: 8 pure computation (slicing, worst, format, edge cases) + 1 real LLM
+
+✅ Story 5.3 — LLM Judge with Critiques (Feb 11)
+   src/eval/judge.ts — judge creation, testing, and execution
+   createJudge() — generates domain-specific judge from eval run results
+   Process: 80/20 train/test split → LLM generates judge prompt → tests agreement
+   runJudge() — evaluate any question/answer pair with the judge
+   loadJudgePrompt() — read saved judge from ~/.loop/eval/judge.md
+   loop eval --judge-create [runId] CLI with agreement report
+   Judge is a human-readable text file — editable, versionable
+   Requires both pass AND fail examples, minimum configurable
+   9 tests: 3 validation (rejects), 4 LLM (create, criteria, load, verdicts),
+            1 real end-to-end (eval → judge → agreement), 1 prompt content
 ```
 
 ### Blockers
