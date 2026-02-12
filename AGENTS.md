@@ -274,7 +274,7 @@ This IS the product. Without this, Loop is just another chatbot.
 | 3 | Chat + Signal Capture | ✅ **DONE** | 6 stories |
 | 4 | Benchmark Builder (Generate QA + Validate) | ✅ **DONE** | 5 stories (1 deferred) |
 | 5 | Eval Loop (The Curve) | ✅ **DONE** | 6 stories |
-| 6 | Ship | **IN PROGRESS** | 5/6 stories done |
+| 6 | Ship | ✅ **DONE** | 6 stories (1 deferred) |
 
 > **Note:** EPICs 3-6 were rewritten on Feb 10 based on research into ACE paper (Stanford),
 > Hamel Husain's eval methodology, Glean AI Evaluator, and OpenAI enterprise evals.
@@ -624,7 +624,7 @@ This IS the product. Without this, Loop is just another chatbot.
 | 6.3 | `loop demo` command | ✅ DONE |
 | 6.4 | npm package + install | ✅ DONE |
 | 6.5 | README rewrite | ✅ DONE |
-| 6.6 | Real-world validation | BACKLOG |
+| 6.6 | Real-world validation | ✅ DONE |
 
 ### What's Built (EPIC 6)
 
@@ -690,6 +690,15 @@ This IS the product. Without this, Loop is just another chatbot.
    Architecture: one paragraph + ASCII diagram
    Storage layout documented
    Requirements section (Node 18+, Python optional for PDF)
+
+✅ Story 6.6 — Real-world validation (Feb 12)
+   Satish tested full workflow on real DeltaXY aviation documents
+   Fresh install, onboarding, ingest, chat, generate-qa, eval, improve — all working
+   Ship decision: ✅ SHIP
+
+   Story 4.4 (FinanceBench) — Deferred (nice-to-have, not blocking ship)
+
+   EPIC 6 COMPLETE ✅
 ```
 
 ### Blockers
